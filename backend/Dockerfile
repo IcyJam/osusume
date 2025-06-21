@@ -8,6 +8,7 @@ WORKDIR /code
 COPY ./app /code/app
 COPY main.py /code/
 COPY requirements.txt /code/
+COPY .env /code/
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir --upgrade pip \

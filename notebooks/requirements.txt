@@ -1,0 +1,15 @@
+jupyterlab
+ipykernel
+notebook
+jupyter_server
+
+pandas
+matplotlib
+numpy
+scikit-learn
+
+fastapi
+httpx
+openai
+
+python-dotenv

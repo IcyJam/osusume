@@ -1,4 +1,5 @@
 version: '3.11'
+
 services:
   backend:
     build: ./backend
@@ -14,5 +15,14 @@ services:
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
+    depends_on:
+      - backend
+
+  notebooks:
+    build: ./notebooks
+    ports:
+      - "9999:9999" # map port 8888 in the container to port 9999 on the machine, as it is already being used
+    volumes:
+      - ./notebooks:/notebooks
     depends_on:
       - backend
