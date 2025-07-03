@@ -7,6 +7,8 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/app:/code/app
+    depends_on:
+      - db
 
   frontend:
     build: ./frontend
@@ -18,6 +20,17 @@ services:
     depends_on:
       - backend
 
+  db:
+    image: postgres:16
+    restart: always
+    ports:
+      - "5432:5432"
+    env_file:
+      - backend/.env
+    volumes:
+      - pgdata:/var/lib/postgresql/data # for db persistence
+      - ./backend/app/db/init:/docker-entrypoint-initdb.d # on first-time initialization only, Postgres executes all .sql or .sh files inside /docker-entrypoint-initdb.d
+
   notebooks:
     build: ./notebooks
     ports:
@@ -26,3 +39,6 @@ services:
       - ./notebooks:/notebooks
     depends_on:
       - backend
+
+volumes:
+  pgdata:
