@@ -1,9 +1,13 @@
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[0]))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from clients.openai_client import get_openai_response, make_message
 
 app = FastAPI()
-
 
 origins = ["http://localhost:3000"]
 app.add_middleware(
@@ -15,5 +19,4 @@ app.add_middleware(
 )
 @app.get("/")
 async def read_root():
-    return {"message": "Hi there, my name is Yappi and I'm going to help you find the anime of your dreams :D"}
-
+    return make_message(get_openai_response("Tell me why Vinland Saga is great in one sentence"))
