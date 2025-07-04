@@ -6,9 +6,12 @@ WORKDIR /code
 
 # Copy the current directory contents into the container at /code
 COPY ./app /code/app
+COPY ./test /code/test
 COPY main.py /code/
 COPY requirements.txt /code/
 COPY .env /code/
+
+ENV PYTHONPATH="/code/app"
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir --upgrade pip \

@@ -1,5 +1,13 @@
 fastapi
 uvicorn
+httpx
 
 openai
+
 python-dotenv
+tqdm
+
+sqlalchemy
+psycopg2-binary
+
+pytest
