@@ -5,7 +5,12 @@ sys.path.append(str(Path(__file__).resolve().parents[0]))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from clients.openai_client import get_openai_response, make_message
+from pydantic import BaseModel
+
+from clients.openai_client import get_openai_response
+
+class QueryRequest(BaseModel):      # Helps validate the JSON structure
+    query:str
 
 app = FastAPI()
 
@@ -17,6 +22,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-@app.get("/")
-async def read_root():
-    return make_message(get_openai_response("Tell me why Vinland Saga is great in one sentence"))
+@app.post("/chat")
+async def generate_response(request: QueryRequest):
+    return get_openai_response(request.query)

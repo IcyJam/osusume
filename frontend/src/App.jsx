@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 
-const API_URL = 'http://localhost:8000/'
+const API_URL = 'http://localhost:8000/chat'
 
 function App() {
   const [query, setQuery]         = useState('')
@@ -15,9 +15,15 @@ function App() {
   const handleSubmit = async (event) => {       // Called every time the user clicks on the "Submit" button
     event.preventDefault()                      // Prevents the page from reloading when submitting the form
     setIsLoading(true)                          // Updates loading state to disable the button and textarea
-    console.log(query)                          // TODO : debug, to remove
     try{
-      const response = await fetch(API_URL)     // Async call to the API
+      const response = await                    // Async call to the API
+        fetch(API_URL, {                        // POST query using the user input
+            method: "POST",
+            headers:{
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({query})
+        })    
       const data = await response.json()
       setMessage(data.message)
     }  catch(error) {
@@ -26,7 +32,6 @@ function App() {
     } finally {
       setIsLoading(false)                       // Updates loading state to enable the button and textarea again
       setQuery("")                              // Resets the textarea content
-      console.log(message)                      // TODO : debug, to remove
     }
   };
 
@@ -53,7 +58,8 @@ function App() {
       <div>
         <button
           type="submit"
-          className={`w-25 px-4 py-2 text-white rounded-3xl ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-700'}`}
+          disabled={!query.trim()}
+          className={`w-25 px-4 py-2 text-white rounded-3xl ${isLoading || !query.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-700'}`}
         >
           {isLoading ? 'Loading...' : 'Submit'}
         </button>
