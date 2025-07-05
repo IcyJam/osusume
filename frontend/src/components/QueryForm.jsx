@@ -50,13 +50,13 @@ function QueryForm(){
                 </textarea>
             </div>
 
-            <div>
+            <div className='flex items-center justify-center'>
                 <button
                 type="submit"
                 disabled={!query.trim()}
-                className={`w-25 px-4 py-2 text-white rounded-3xl ${isLoading || !query.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-700'}`}
+                className={`flex items-center justify-center w-25 h-12 px-4 py-2 text-white rounded-3xl ${isLoading || !query.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-700'}`}
                 >
-                {isLoading ? 'Loading...' : 'Submit'}
+                {isLoading ? <img src="/loading.gif" className="w-7 h-7"/> : 'Submit'}
                 </button>
             </div>
         </form>
