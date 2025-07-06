@@ -8,57 +8,104 @@ def sanitize_name(name: str) -> str:
     return name.strip().lower()
 
 
-def get_or_create_content_descriptor(session: Session, name: str) -> ContentDescriptor:
-    name = sanitize_name(name)
-    content_descriptor = session.query(ContentDescriptor).filter_by(content_descriptor=name).first()
-    if not content_descriptor:
-        content_descriptor = ContentDescriptor(content_descriptor=name)
-        session.add(content_descriptor)
-        session.flush() # flush needed to get content_descriptor_id, used to fill in the association table
-    return content_descriptor
+def preload_content_descriptors(session: Session) -> dict[str, ContentDescriptor]:
+    descriptors = session.query(ContentDescriptor).all()
+    return {sanitize_name(d.content_descriptor): d for d in descriptors}
 
 
-def upsert_media(session: Session, media_data: dict) -> Media:
-    media = session.query(Media).filter_by(title=media_data["title"]).first()
+def preload_media(session: Session) -> dict[str, Media]:
+    media_entries = session.query(Media).all()
+    return {m.title: m for m in media_entries}
 
-    media_type = MediaType(media_data["type"]) if media_data["type"] else None
-    status = Status(media_data["status"]) if media_data["status"] else None
 
-    descriptors = [
-        get_or_create_content_descriptor(session, d)
-        for d in media_data.get("content_descriptors", [])
-    ]
+def get_or_create_content_descriptor(
+        session: Session,
+        name: str,
+        cache: dict[str, ContentDescriptor] = None
+) -> ContentDescriptor:
+    if cache is None: cache = {}
 
-    if media:
-        # Update existing
-        media.type = media_type
-        media.summary = media_data.get("summary")
-        media.start_date = media_data.get("start_date")
-        media.end_date = media_data.get("end_date")
-        media.external_url = media_data.get("external_url")
-        media.image_url = media_data.get("image_url")
-        media.status = status
-        media.updated_at = datetime.now(UTC)
-        media.content_descriptors = descriptors
-    else:
-        # Create new
-        media = Media(
-            title=media_data["title"],
-            type=media_type,
-            summary=media_data.get("summary"),
-            start_date=media_data.get("start_date"),
-            end_date=media_data.get("end_date"),
-            external_url=media_data.get("external_url"),
-            image_url=media_data.get("image_url"),
-            status=status,
-        )
-        media.content_descriptors = descriptors
-        session.add(media)
+    key = sanitize_name(name)
+    if key in cache:
+        return cache[key]
 
+    descriptor = session.query(ContentDescriptor).filter_by(content_descriptor=key).first()
+    if descriptor is None:
+        descriptor = ContentDescriptor(content_descriptor=key)
+        session.add(descriptor)
+        session.flush()
+
+    cache[key] = descriptor
+    return descriptor
+
+
+def get_or_create_content_descriptor_cached(
+        session: Session,
+        name: str,
+        cache: dict[str, ContentDescriptor]
+) -> ContentDescriptor:
+    # Unlike get_or_create_content_descriptor, this function does not have a database fallback if the cache is out of sync.
+    # It should only be used when the cache is explicitly and rigorously managed.
+
+    key = sanitize_name(name)
+    if key in cache:
+        return cache[key]
+
+    descriptor = ContentDescriptor(content_descriptor=key)
+    session.add(descriptor)
+    session.flush()
+
+    cache[key] = descriptor
+    return descriptor
+
+
+def create_new_media(entry, media_type, status, descriptors):
+    media = Media(
+        title=entry["title"],
+        type=media_type,
+        summary=entry.get("summary"),
+        start_date=entry.get("start_date"),
+        end_date=entry.get("end_date"),
+        external_url=entry.get("external_url"),
+        image_url=entry.get("image_url"),
+        status=status,
+    )
+    media.content_descriptors = descriptors
     return media
 
 
+def update_existing_media(existing_media, new_entry, media_type, status, descriptors):
+    existing_media.type = media_type
+    existing_media.summary = new_entry.get("summary")
+    existing_media.start_date = new_entry.get("start_date")
+    existing_media.end_date = new_entry.get("end_date")
+    existing_media.external_url = new_entry.get("external_url")
+    existing_media.image_url = new_entry.get("image_url")
+    existing_media.status = status
+    existing_media.updated_at = datetime.now(UTC)
+    existing_media.content_descriptors = descriptors
+
+
 def load_all_media(session: Session, entries: list[dict]):
+    media_cache = preload_media(session)
+    content_descriptors_cache = preload_content_descriptors(session)
     for entry in tqdm(entries, desc="Loading media"):
-        upsert_media(session, entry)
+        title = entry.get('title')
+        media = media_cache.get(title)
+
+        media_type = MediaType(entry["type"]) if entry["type"] else None
+        status = Status(entry["status"]) if entry["status"] else None
+        descriptors = [
+            get_or_create_content_descriptor_cached(session=session, name=d, cache=content_descriptors_cache)
+            for d in entry.get("content_descriptors", [])
+        ]
+
+        if media:
+            update_existing_media(media, entry, media_type, status, descriptors)
+        else:
+            media = create_new_media(entry, media_type, status, descriptors)
+            session.add(media)
+            media_cache[title] = media
+
+    session.flush()
     session.commit()

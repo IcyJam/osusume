@@ -7,8 +7,9 @@ from db.models import Base, Media, ContentDescriptor, MediaType, Status
 from ingestion.loaders.media_loader import (
     sanitize_name,
     get_or_create_content_descriptor,
-    upsert_media,
-    load_all_media
+    create_new_media,
+    update_existing_media,
+    load_all_media, preload_content_descriptors, get_or_create_content_descriptor_cached
 )
 
 
@@ -49,10 +50,23 @@ def test_get_or_create_content_descriptor_reuses_existing(session):
     assert first.content_descriptor_id == second.content_descriptor_id
     assert session.query(ContentDescriptor).count() == 1
 
+def test_get_or_create_content_descriptor_cached_creates_new(session):
+    cd = get_or_create_content_descriptor_cached(session, "Psychological", cache={})
+    assert cd.content_descriptor == "psychological"
+    assert session.query(ContentDescriptor).count() == 1
+
+
+def test_get_or_create_content_descriptor_cached_reuses_existing(session):
+    cache={}
+    first = get_or_create_content_descriptor_cached(session, "Drama", cache=cache)
+    second = get_or_create_content_descriptor(session, "  drama  ", cache={"drama":first})
+    assert first.content_descriptor_id == second.content_descriptor_id
+    assert session.query(ContentDescriptor).count() == 1
+
 
 # ----------- upsert_media -----------
 
-def test_upsert_media_creates_new(session):
+def test_create_new_media():
     data = {
         "title": "Naruto",
         "type": "anime",
@@ -62,26 +76,23 @@ def test_upsert_media_creates_new(session):
         "external_url": "https://anilist.co/anime/20",
         "image_url": "https://img.com/naruto.jpg",
         "status": "finished",
-        "content_descriptors": ["shounen", "ninja"]
+        "content_descriptors": ["shounen"]
     }
 
-    media = upsert_media(session, data)
-    session.commit()
+    descriptors = [ContentDescriptor(content_descriptor="shounen")]
+    media_type = MediaType.anime
+    status = Status.finished
 
-    db_media = session.query(Media).filter_by(title="Naruto").first()
-    assert db_media is not None
-    assert db_media.title == "Naruto"
-    assert db_media.type == MediaType.anime
-    assert db_media.summary == "Naruto Uzumaki wants to become Hokage."
+    media = create_new_media(data, media_type, status, descriptors)
+
     assert media.start_date == date(2002, 10, 3)
     assert media.end_date == date(2007, 2, 8)
     assert media.external_url == "https://anilist.co/anime/20"
     assert media.image_url == "https://img.com/naruto.jpg"
     assert media.status == Status.finished
-    assert session.query(ContentDescriptor).count() == 2
 
 
-def test_upsert_media_updates_existing(session):
+def test_update_existing_media():
     # First insert
     data1 = {
         "title": "Naruto",
@@ -95,21 +106,21 @@ def test_upsert_media_updates_existing(session):
         "content_descriptors": ["shounen"]
     }
 
-    upsert_media(session, data1)
-    session.commit()
+    descriptors1 = [ContentDescriptor(content_descriptor="shounen")]
+    media_type = MediaType.anime
+    status = Status.finished
+
+    media = create_new_media(data1, media_type, status, descriptors1)
 
     # Update with different descriptor
     data2 = data1.copy()
     data2["content_descriptors"] = ["action"]
+    descriptors2 = [ContentDescriptor(content_descriptor="action")]
 
-    upsert_media(session, data2)
-    session.commit()
+    update_existing_media(media, data2, media_type, status, descriptors2)
 
-    media = session.query(Media).filter_by(title="Naruto").first()
-    assert media is not None
     assert len(media.content_descriptors) == 1
     assert media.content_descriptors[0].content_descriptor == "action"
-    assert session.query(ContentDescriptor).count() == 2
 
 
 # ----------- load_all_media -----------
@@ -144,3 +155,53 @@ def test_load_all_media_bulk_insert(session):
 
     assert session.query(Media).count() == 2
     assert session.query(ContentDescriptor).count() == 4
+
+
+def test_load_all_media_bulk_insert_with_updates(session):
+    initial_entries = [
+        {
+            "title": "Death Note",
+            "type": "anime",
+            "summary": None,
+            "start_date": date(2006, 10, 1),
+            "end_date": None,
+            "external_url": "https://anilist.co/anime/1535",
+            "image_url": "https://img.com/deathnote.jpg",
+            "status": "finished",
+            "content_descriptors": ["psychological", "supernatural"]
+        },
+        {
+            "title": "Bleach",
+            "type": "anime",
+            "summary": None,
+            "start_date": date(2004, 10, 1),
+            "end_date": None,
+            "external_url": "https://anilist.co/anime/269",
+            "image_url": "https://img.com/bleach.jpg",
+            "status": "finished",
+            "content_descriptors": ["action", "shounen"]
+        }
+    ]
+
+    updated_entries = [
+        {
+            "title": "Bleach",
+            "type": "anime",
+            "summary": None,
+            "start_date": date(2004, 10, 1),
+            "end_date": None,
+            "external_url": "https://anilist.co/anime/269",
+            "image_url": "https://img.com/bleach.jpg",
+            "status": "finished",
+            "content_descriptors": ["action"]
+        }
+    ]
+
+    load_all_media(session, initial_entries)
+    load_all_media(session, updated_entries)
+
+    media = session.query(Media).filter_by(title="Bleach").first()
+
+    assert session.query(Media).count() == 2
+    assert session.query(ContentDescriptor).count() == 4
+    assert len(media.content_descriptors) == 1

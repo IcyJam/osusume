@@ -50,7 +50,7 @@ class Media(Base):
 
     media_id = Column(Integer, primary_key=True, autoincrement=True)
     type = Column(Enum(MediaType, name="media_type"), nullable=False)
-    title = Column(Text, nullable=False)
+    title = Column(Text, nullable=False, unique=True)
     summary = Column(Text, nullable=True)
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
