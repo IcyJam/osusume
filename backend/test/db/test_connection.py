@@ -1,6 +1,5 @@
+from app.db.database import SessionLocal
 from sqlalchemy import text
-
-from db.database import SessionLocal
 
 
 def test_connection():

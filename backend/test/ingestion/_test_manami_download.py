@@ -1,6 +1,6 @@
 import os
 
-import ingestion.scrapers.manami_scraper as manami_scraper
+import app.ingestion.scrapers.manami_scraper as manami_scraper
 
 
 def test_manami_download():

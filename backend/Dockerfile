@@ -15,9 +15,9 @@ COPY pyproject.toml /code/
 
 COPY .env /code/
 
-RUN pip install -e .
+RUN pip install -e . # install in editable mode (changes in modules are reflected directly), but also initializes scripts (for the custom osusume command)
 
-ENV PYTHONPATH="/code:/code/app:/code/cli"
+ENV PYTHONPATH="/code"
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir --upgrade pip \

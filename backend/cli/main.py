@@ -1,6 +1,6 @@
 import typer
 
-import ingest
+import cli.ingestion as ingest
 
 app = typer.Typer()
 app.add_typer(ingest.app, name="ingest", help="Ingest manami (anime offline database)")

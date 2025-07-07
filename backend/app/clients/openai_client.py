@@ -1,18 +1,21 @@
 import os
-from openai import OpenAI
-from dotenv import load_dotenv
 from pathlib import Path
 
-def make_message(myString:str) :
-    return {"message" : myString}
+from dotenv import load_dotenv
+from openai import OpenAI
 
-def get_openai_response(query:str) : 
-    
-    if len(query) > 500 :
+
+def make_message(my_string: str):
+    return {"message": my_string}
+
+
+def get_openai_response(query: str):
+    if len(query) > 500:
         return make_message("Sorry, your query was too long! Try to make it a bit shorter.")
-    
-    else : 
-        env_path = Path(__file__).resolve().parents[2] / '.env' # Gets the .env file that is 2 folders above the current file
+
+    else:
+        env_path = Path(__file__).resolve().parents[
+                       2] / '.env'  # Gets the .env file that is 2 folders above the current file
         load_dotenv(dotenv_path=env_path)
         api_key = os.getenv("OPENAI_API_KEY")
 

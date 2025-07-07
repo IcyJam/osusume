@@ -1,6 +1,6 @@
 import typer
 
-from ingestion.pipelines.manami_import_pipeline import import_manami_from_repo, import_manami_from_file
+from app.ingestion.pipelines.manami_import_pipeline import import_manami_from_repo, import_manami_from_file
 
 app = typer.Typer()
 

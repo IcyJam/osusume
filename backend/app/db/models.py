@@ -1,3 +1,5 @@
+import enum
+
 from sqlalchemy import (
     Column,
     Integer,
@@ -10,7 +12,6 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import DeclarativeBase, relationship
-import enum
 
 
 class Base(DeclarativeBase):

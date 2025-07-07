@@ -1,7 +1,8 @@
-import httpx
 import os
-from dotenv import load_dotenv
 from pathlib import Path
+
+import httpx
+from dotenv import load_dotenv
 from tqdm import tqdm
 
 PROJECT_URL = "https://api.github.com/repos/manami-project/anime-offline-database"

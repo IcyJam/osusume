@@ -1,15 +1,16 @@
-import pytest
 from datetime import date
+
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from db.models import Base, Media, ContentDescriptor, MediaType, Status
-from ingestion.loaders.media_loader import (
+from app.db.models import Base, Media, ContentDescriptor, MediaType, Status
+from app.ingestion.loaders.media_loader import (
     sanitize_name,
     get_or_create_content_descriptor,
     create_new_media,
     update_existing_media,
-    load_all_media, preload_content_descriptors, get_or_create_content_descriptor_cached
+    load_all_media, get_or_create_content_descriptor_cached
 )
 
 

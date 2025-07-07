@@ -1,12 +1,11 @@
 import json
 import os
 
+from app.db.database import SessionLocal
+from app.ingestion.converters.manami_converter import convert_media_entry
+from app.ingestion.loaders.media_loader import load_all_media
+from app.ingestion.scrapers.manami_scraper import download_database, ANIME_DATABASE_ASSET_NAME
 from tqdm import tqdm
-
-from db.database import SessionLocal
-from ingestion.converters.manami_converter import convert_media_entry
-from ingestion.loaders.media_loader import load_all_media
-from ingestion.scrapers.manami_scraper import download_database, ANIME_DATABASE_ASSET_NAME
 
 
 def import_manami_from_repo():
@@ -19,18 +18,7 @@ def import_manami_from_repo():
         return
 
     try:
-        print("Converting media entries...")
-        with open(ANIME_DATABASE_ASSET_NAME, "r", encoding="utf-8") as f:
-            raw_data = json.load(f)
-
-        entries = raw_data["data"]
-        transformed = [convert_media_entry(entry) for entry in tqdm(entries, desc="Converting media entries")]
-
-        print("Loading into database...")
-        with SessionLocal() as session:
-            load_all_media(session, transformed)
-
-        print("Media entries successfully imported into the database!")
+        load_file_into_database(ANIME_DATABASE_ASSET_NAME)
 
     except Exception as e:
         print("An error occurred during import:", e)
@@ -48,18 +36,21 @@ def import_manami_from_file(filepath: str):
         return
 
     try:
-        print("Converting media entries...")
-        with open(filepath, "r", encoding="utf-8") as f:
-            raw_data = json.load(f)
-
-        entries = raw_data["data"]
-        transformed = [convert_media_entry(entry) for entry in tqdm(entries, desc="Converting media entries")]
-
-        print("Loading into database...")
-        with SessionLocal() as session:
-            load_all_media(session, transformed)
-
-        print("Media entries successfully imported into the database!")
+        load_file_into_database(filepath)
 
     except Exception as e:
         print("An error occurred during import:", e)
+
+
+def load_file_into_database(path: str):
+    print("Converting media entries...")
+    with open(path, "r", encoding="utf-8") as f:
+        raw_data = json.load(f)
+
+    entries = raw_data["data"]
+    transformed = [convert_media_entry(entry) for entry in tqdm(entries, desc="Converting media entries")]
+
+    print("Loading into database...")
+    with SessionLocal() as session:
+        load_all_media(session, transformed)
+    print("Media entries successfully imported into the database!")
