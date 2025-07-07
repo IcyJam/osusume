@@ -1,11 +1,7 @@
-import sys
-import os
-
-# Add the backend/app folder to sys.path
-#sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../app")))
+from sqlalchemy import text
 
 from db.database import SessionLocal
-from sqlalchemy import text
+
 
 def test_connection():
     try:

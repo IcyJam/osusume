@@ -1,0 +1,12 @@
+[project]
+name = "osusume"
+version = "0.1.0"
+dependencies = [
+    "typer[all]",
+]
+
+[tool.setuptools]
+packages = ["app", "cli"]
+
+[project.scripts]
+osusume = "cli.main:app"
