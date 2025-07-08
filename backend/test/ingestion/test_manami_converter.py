@@ -5,8 +5,24 @@ from app.ingestion.converters.manami_converter import (
     convert_date,
     convert_status,
     convert_external_url,
-    convert_media_entry
+    convert_media_entry, convert_type
 )
+
+
+# ----------- convert_type -----------
+
+@pytest.mark.parametrize("input_dict,expected", [
+    ("TV","TV"),
+    ("MOVIE","MOVIE"),
+    ("OVA","OVA"),
+    ("ONA","ONA"),
+    ("SPECIAL","SPECIAL"),
+    ("OTHER","OTHER"),
+    ("UNKNOWN","OTHER"),
+    (None, "OTHER"),
+])
+def test_convert_type(input_dict, expected):
+    assert convert_type(input_dict) == expected
 
 
 # ----------- convert_date -----------
@@ -27,10 +43,10 @@ def test_convert_date(input_dict, expected):
 # ----------- convert_status -----------
 
 @pytest.mark.parametrize("input_status,expected", [
-    ("FINISHED", "finished"),
-    ("ONGOING", "ongoing"),
-    ("UPCOMING", "upcoming"),
-    ("UNKNOWN", "unknown"),
+    ("FINISHED", "FINISHED"),
+    ("ONGOING", "ONGOING"),
+    ("UPCOMING", "UPCOMING"),
+    ("UNKNOWN", "UNKNOWN"),
     ("CANCELLED", None),
     ("", None),
     (None, None),
@@ -71,6 +87,7 @@ def test_convert_external_url_malformed_url():
 def test_convert_media_entry_basic():
     entry = {
         "title": "Naruto",
+        "type":"TV",
         "animeSeason": {"season": "FALL", "year": 2002},
         "sources": ["https://anilist.co/anime/20"],
         "picture": "https://img.com/naruto.jpg",
@@ -80,9 +97,9 @@ def test_convert_media_entry_basic():
 
     result = convert_media_entry(entry)
     assert result["title"] == "Naruto"
-    assert result["type"] == "anime"
+    assert result["type"] == "TV"
     assert result["start_date"] == date(2002, 10, 1)
-    assert result["status"] == "finished"
+    assert result["status"] == "FINISHED"
     assert result["external_url"] == "https://anilist.co/anime/20"
     assert result["image_url"] == "https://img.com/naruto.jpg"
     assert result["content_descriptors"] == ["shounen", "ninja"]

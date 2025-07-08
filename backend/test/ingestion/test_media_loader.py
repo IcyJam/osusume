@@ -70,7 +70,7 @@ def test_get_or_create_content_descriptor_cached_reuses_existing(session):
 def test_create_new_media():
     data = {
         "title": "Naruto",
-        "type": "anime",
+        "type": "TV",
         "summary": "Naruto Uzumaki wants to become Hokage.",
         "start_date": date(2002, 10, 3),
         "end_date": date(2007, 2, 8),
@@ -81,8 +81,8 @@ def test_create_new_media():
     }
 
     descriptors = [ContentDescriptor(content_descriptor="shounen")]
-    media_type = MediaType.anime
-    status = Status.finished
+    media_type = MediaType.TV
+    status = Status.FINISHED
 
     media = create_new_media(data, media_type, status, descriptors)
 
@@ -90,26 +90,26 @@ def test_create_new_media():
     assert media.end_date == date(2007, 2, 8)
     assert media.external_url == "https://anilist.co/anime/20"
     assert media.image_url == "https://img.com/naruto.jpg"
-    assert media.status == Status.finished
+    assert media.status == Status.FINISHED
 
 
 def test_update_existing_media():
     # First insert
     data1 = {
         "title": "Naruto",
-        "type": "anime",
+        "type": "TV",
         "summary": None,
         "start_date": date(2002, 10, 1),
         "end_date": None,
         "external_url": "https://anilist.co/anime/20",
         "image_url": "https://img.com/naruto.jpg",
-        "status": "finished",
+        "status": "FINISHED",
         "content_descriptors": ["shounen"]
     }
 
     descriptors1 = [ContentDescriptor(content_descriptor="shounen")]
-    media_type = MediaType.anime
-    status = Status.finished
+    media_type = MediaType.TV
+    status = Status.FINISHED
 
     media = create_new_media(data1, media_type, status, descriptors1)
 
@@ -130,24 +130,24 @@ def test_load_all_media_bulk_insert(session):
     entries = [
         {
             "title": "Death Note",
-            "type": "anime",
+            "type": "TV",
             "summary": None,
             "start_date": date(2006, 10, 1),
             "end_date": None,
             "external_url": "https://anilist.co/anime/1535",
             "image_url": "https://img.com/deathnote.jpg",
-            "status": "finished",
+            "status": "FINISHED",
             "content_descriptors": ["psychological", "supernatural"]
         },
         {
             "title": "Bleach",
-            "type": "anime",
+            "type": "TV",
             "summary": None,
             "start_date": date(2004, 10, 1),
             "end_date": None,
             "external_url": "https://anilist.co/anime/269",
             "image_url": "https://img.com/bleach.jpg",
-            "status": "finished",
+            "status": "FINISHED",
             "content_descriptors": ["action", "shounen"]
         }
     ]
@@ -162,24 +162,46 @@ def test_load_all_media_bulk_insert_with_updates(session):
     initial_entries = [
         {
             "title": "Death Note",
-            "type": "anime",
+            "type": "TV",
             "summary": None,
             "start_date": date(2006, 10, 1),
             "end_date": None,
             "external_url": "https://anilist.co/anime/1535",
             "image_url": "https://img.com/deathnote.jpg",
-            "status": "finished",
+            "status": "FINISHED",
             "content_descriptors": ["psychological", "supernatural"]
         },
         {
             "title": "Bleach",
-            "type": "anime",
+            "type": "TV",
             "summary": None,
             "start_date": date(2004, 10, 1),
             "end_date": None,
             "external_url": "https://anilist.co/anime/269",
             "image_url": "https://img.com/bleach.jpg",
-            "status": "finished",
+            "status": "FINISHED",
+            "content_descriptors": ["action", "shounen"]
+        },
+        {
+            "title": "Bleach",
+            "type": "OVA",
+            "summary": None,
+            "start_date": date(2004, 10, 1),
+            "end_date": None,
+            "external_url": "https://anilist.co/anime/270",
+            "image_url": "https://img.com/bleach.jpg",
+            "status": "FINISHED",
+            "content_descriptors": ["action", "shounen"]
+        },
+        {
+            "title": "Bleach",
+            "type": "OVA",
+            "summary": None,
+            "start_date": date(2004, 10, 1),
+            "end_date": None,
+            "external_url": "https://other_url/bleach",
+            "image_url": "https://img.com/bleach.jpg",
+            "status": "FINISHED",
             "content_descriptors": ["action", "shounen"]
         }
     ]
@@ -187,13 +209,13 @@ def test_load_all_media_bulk_insert_with_updates(session):
     updated_entries = [
         {
             "title": "Bleach",
-            "type": "anime",
+            "type": "TV",
             "summary": None,
             "start_date": date(2004, 10, 1),
             "end_date": None,
             "external_url": "https://anilist.co/anime/269",
             "image_url": "https://img.com/bleach.jpg",
-            "status": "finished",
+            "status": "FINISHED",
             "content_descriptors": ["action"]
         }
     ]
@@ -201,8 +223,8 @@ def test_load_all_media_bulk_insert_with_updates(session):
     load_all_media(session, initial_entries)
     load_all_media(session, updated_entries)
 
-    media = session.query(Media).filter_by(title="Bleach").first()
+    media = session.query(Media).filter_by(title="Bleach", type="TV").first()
 
-    assert session.query(Media).count() == 2
+    assert session.query(Media).count() == 4
     assert session.query(ContentDescriptor).count() == 4
     assert len(media.content_descriptors) == 1

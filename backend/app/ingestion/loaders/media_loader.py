@@ -14,10 +14,9 @@ def preload_content_descriptors(session: Session) -> dict[str, ContentDescriptor
     return {sanitize_name(d.content_descriptor): d for d in descriptors}
 
 
-def preload_media(session: Session) -> dict[str, Media]:
+def preload_media(session: Session) -> dict[tuple[str, MediaType, str], Media]:
     media_entries = session.query(Media).all()
-    return {m.title: m for m in media_entries}
-
+    return {(m.title, m.type, m.external_url): m for m in media_entries}
 
 def get_or_create_content_descriptor(
         session: Session,
@@ -91,10 +90,13 @@ def load_all_media(session: Session, entries: list[dict]):
     media_cache = preload_media(session)
     content_descriptors_cache = preload_content_descriptors(session)
     for entry in tqdm(entries, desc="Loading media"):
-        title = entry.get('title')
-        media = media_cache.get(title)
+        title = entry.get("title")
+        type_str = entry.get("type")
+        external_url = entry.get("external_url")
+        media_type = MediaType(type_str) if type_str else None
+        media_key = (title, media_type, external_url)
+        media = media_cache.get(media_key)
 
-        media_type = MediaType(entry["type"]) if entry["type"] else None
         status = Status(entry["status"]) if entry["status"] else None
         descriptors = [
             get_or_create_content_descriptor_cached(session=session, name=d, cache=content_descriptors_cache)
@@ -106,7 +108,7 @@ def load_all_media(session: Session, entries: list[dict]):
         else:
             media = create_new_media(entry, media_type, status, descriptors)
             session.add(media)
-            media_cache[title] = media
+            media_cache[media_key] = media
 
     session.flush()
     session.commit()

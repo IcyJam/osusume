@@ -9,7 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Table,
     Enum,
-    func,
+    func, UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, relationship
 
@@ -19,17 +19,24 @@ class Base(DeclarativeBase):
 
 
 class MediaType(enum.Enum):
-    anime = "anime"
-    manga = "manga"
+    TV = "TV"
+    MOVIE = "MOVIE"
+    OVA = "OVA"
+    ONA = "ONA"
+    SPECIAL = "SPECIAL"
+    MANGA = "manga"
+    NOVEL = "NOVEL"
+    ARTBOOK = "ARTBOOK"
+    OTHER = "OTHER"
 
 
 class Status(enum.Enum):
-    upcoming = "upcoming"
-    ongoing = "ongoing"
-    finished = "finished"
-    suspended = "suspended"
-    cancelled = "cancelled"
-    unknown = "unknown"
+    UPCOMING = "UPCOMING"
+    ONGOING = "ONGOING"
+    FINISHED = "FINISHED"
+    SUSPENDED = "SUSPENDED"
+    CANCELLED = "CANCELLED"
+    UNKNOWN = "UNKNOWN"
 
 
 # Association tables for many-to-many relations
@@ -48,10 +55,13 @@ media_content_descriptors = Table(
 
 class Media(Base):
     __tablename__ = "media"
+    __table_args__ = (
+        UniqueConstraint("title", "type", "external_url",name="uq_media_title_type_url"),
+    )
 
     media_id = Column(Integer, primary_key=True, autoincrement=True)
     type = Column(Enum(MediaType, name="media_type"), nullable=False)
-    title = Column(Text, nullable=False, unique=True)
+    title = Column(Text, nullable=False)
     summary = Column(Text, nullable=True)
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)

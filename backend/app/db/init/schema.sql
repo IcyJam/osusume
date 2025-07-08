@@ -1,24 +1,29 @@
 CREATE TYPE "media_type" AS ENUM (
-    'anime',
-    'manga',
-    'novel',
-    'other'
+    'TV',
+    'MOVIE',
+    'OVA',
+    'ONA',
+    'SPECIAL',
+    'MANGA',
+    'NOVEL',
+    'ARTBOOK',
+    'OTHER'
 );
 
 CREATE TYPE "status" AS ENUM (
-    'upcoming',
-    'ongoing',
-    'finished',
-    'suspended',
-    'cancelled',
-    'unknown'
+    'UPCOMING',
+    'ONGOING',
+    'FINISHED',
+    'SUSPENDED',
+    'CANCELLED',
+    'UNKNOWN'
 );
 
 CREATE TABLE "media"
 (
     "media_id"     serial PRIMARY KEY,
     "type"         media_type NOT NULL,
-    "title"        text       NOT NULL UNIQUE,
+    "title"        text       NOT NULL,
     "summary"      text,
     "start_date"   date,
     "end_date"     date,
@@ -26,7 +31,8 @@ CREATE TABLE "media"
     "image_url"    text,
     "status"       status,
     "created_at"   timestamp default CURRENT_TIMESTAMP,
-    "updated_at"   timestamp default CURRENT_TIMESTAMP
+    "updated_at"   timestamp default CURRENT_TIMESTAMP,
+    UNIQUE ("title", "type", "external_url")
 );
 
 CREATE TABLE "content_descriptors"

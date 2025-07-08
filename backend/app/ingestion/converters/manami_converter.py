@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 def convert_media_entry(entry: dict) -> dict:
     return {
-        "type": "anime",
+        "type": convert_type(entry.get("type")),
         "title": entry.get("title"),
         "summary": None,  # the anime offline database does not include summaries
         "start_date": convert_date(entry.get("animeSeason", None)),
@@ -37,15 +37,30 @@ def convert_date(anime_season: dict | None) -> date | None:
         return date(year=year, month=season_month, day=1)
 
 
+def convert_type(entry_type: str) -> str:
+    if entry_type == "TV":
+        return "TV"
+    if entry_type == "MOVIE":
+        return "MOVIE"
+    if entry_type == "OVA":
+        return "OVA"
+    if entry_type == "ONA":
+        return "ONA"
+    if entry_type == "SPECIAL":
+        return "SPECIAL"
+    else:
+        return "OTHER"
+
+
 def convert_status(status: str) -> str | None:
     if status == "FINISHED":
-        return "finished"
+        return "FINISHED"
     elif status == "ONGOING":
-        return "ongoing"
+        return "ONGOING"
     elif status == "UPCOMING":
-        return "upcoming"
+        return "UPCOMING"
     elif status == "UNKNOWN":
-        return "unknown"
+        return "UNKNOWN"
     else:
         return None
 
