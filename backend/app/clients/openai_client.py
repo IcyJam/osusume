@@ -1,8 +1,6 @@
-import os
-from pathlib import Path
-
-from dotenv import load_dotenv
 from openai import OpenAI
+
+from common.env import get_env_variable
 
 
 def make_message(my_string: str):
@@ -14,10 +12,7 @@ def get_openai_response(query: str):
         return make_message("Sorry, your query was too long! Try to make it a bit shorter.")
 
     else:
-        env_path = Path(__file__).resolve().parents[
-                       2] / '.env'  # Gets the .env file that is 2 folders above the current file
-        load_dotenv(dotenv_path=env_path)
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = get_env_variable("OPENAI_API_KEY")
 
         client = OpenAI(
             api_key=api_key

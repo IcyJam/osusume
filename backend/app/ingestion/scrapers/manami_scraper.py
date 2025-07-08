@@ -1,19 +1,12 @@
 import os
-from pathlib import Path
 
 import httpx
-from dotenv import load_dotenv
 from tqdm import tqdm
+
+from common.env import get_env_variable
 
 PROJECT_URL = "https://api.github.com/repos/manami-project/anime-offline-database"
 ANIME_DATABASE_ASSET_NAME = "anime-offline-database.json"
-
-
-def load_env():
-    env_path = Path(__file__).resolve().parents[3] / '.env'
-    load_dotenv(dotenv_path=env_path)
-    github_token = os.getenv("GITHUB_TOKEN")
-    return github_token
 
 
 def download_with_progress(download_url: str, headers: dict, output_path: str):
@@ -41,7 +34,7 @@ def download_database(local_save_dir):
     Downloads the anime offline database from its latest GitHub release. It is expected to be a JSON file.
     :param local_save_dir: Directory to save the database file to.
     """
-    github_token = load_env()
+    github_token = get_env_variable("GITHUB_TOKEN")
 
     headers = {
         "Accept": "application/vnd.github+json",

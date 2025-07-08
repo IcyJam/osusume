@@ -5,6 +5,7 @@ FROM python:3.11-slim
 WORKDIR /code
 
 # Copy the current directory contents into the container at /code
+COPY ./common /code/common
 COPY ./app /code/app
 COPY ./cli /code/cli
 COPY ./test /code/test
