@@ -68,6 +68,7 @@ def create_new_media(entry, media_type, status, descriptors):
         end_date=entry.get("end_date"),
         external_url=entry.get("external_url"),
         image_url=entry.get("image_url"),
+        score=entry.get("score"),
         status=status,
     )
     media.content_descriptors = descriptors
@@ -81,6 +82,7 @@ def update_existing_media(existing_media, new_entry, media_type, status, descrip
     existing_media.end_date = new_entry.get("end_date")
     existing_media.external_url = new_entry.get("external_url")
     existing_media.image_url = new_entry.get("image_url")
+    existing_media.score = new_entry.get("score")
     existing_media.status = status
     existing_media.updated_at = datetime.now(UTC)
     existing_media.content_descriptors = descriptors

@@ -51,6 +51,7 @@ def test_get_or_create_content_descriptor_reuses_existing(session):
     assert first.content_descriptor_id == second.content_descriptor_id
     assert session.query(ContentDescriptor).count() == 1
 
+
 def test_get_or_create_content_descriptor_cached_creates_new(session):
     cd = get_or_create_content_descriptor_cached(session, "Psychological", cache={})
     assert cd.content_descriptor == "psychological"
@@ -58,9 +59,9 @@ def test_get_or_create_content_descriptor_cached_creates_new(session):
 
 
 def test_get_or_create_content_descriptor_cached_reuses_existing(session):
-    cache={}
+    cache = {}
     first = get_or_create_content_descriptor_cached(session, "Drama", cache=cache)
-    second = get_or_create_content_descriptor(session, "  drama  ", cache={"drama":first})
+    second = get_or_create_content_descriptor(session, "  drama  ", cache={"drama": first})
     assert first.content_descriptor_id == second.content_descriptor_id
     assert session.query(ContentDescriptor).count() == 1
 
@@ -77,6 +78,7 @@ def test_create_new_media():
         "external_url": "https://anilist.co/anime/20",
         "image_url": "https://img.com/naruto.jpg",
         "status": "finished",
+        "score": 8.30,
         "content_descriptors": ["shounen"]
     }
 
@@ -90,6 +92,7 @@ def test_create_new_media():
     assert media.end_date == date(2007, 2, 8)
     assert media.external_url == "https://anilist.co/anime/20"
     assert media.image_url == "https://img.com/naruto.jpg"
+    assert media.score == 8.30
     assert media.status == Status.FINISHED
 
 
@@ -104,6 +107,7 @@ def test_update_existing_media():
         "external_url": "https://anilist.co/anime/20",
         "image_url": "https://img.com/naruto.jpg",
         "status": "FINISHED",
+        "score": 8.30,
         "content_descriptors": ["shounen"]
     }
 
@@ -137,6 +141,7 @@ def test_load_all_media_bulk_insert(session):
             "external_url": "https://anilist.co/anime/1535",
             "image_url": "https://img.com/deathnote.jpg",
             "status": "FINISHED",
+            "score": 8.30,
             "content_descriptors": ["psychological", "supernatural"]
         },
         {
@@ -148,6 +153,7 @@ def test_load_all_media_bulk_insert(session):
             "external_url": "https://anilist.co/anime/269",
             "image_url": "https://img.com/bleach.jpg",
             "status": "FINISHED",
+            "score": 8.30,
             "content_descriptors": ["action", "shounen"]
         }
     ]
@@ -169,6 +175,7 @@ def test_load_all_media_bulk_insert_with_updates(session):
             "external_url": "https://anilist.co/anime/1535",
             "image_url": "https://img.com/deathnote.jpg",
             "status": "FINISHED",
+            "score": 8.30,
             "content_descriptors": ["psychological", "supernatural"]
         },
         {
@@ -191,6 +198,7 @@ def test_load_all_media_bulk_insert_with_updates(session):
             "external_url": "https://anilist.co/anime/270",
             "image_url": "https://img.com/bleach.jpg",
             "status": "FINISHED",
+            "score": 8.30,
             "content_descriptors": ["action", "shounen"]
         },
         {
@@ -202,6 +210,7 @@ def test_load_all_media_bulk_insert_with_updates(session):
             "external_url": "https://other_url/bleach",
             "image_url": "https://img.com/bleach.jpg",
             "status": "FINISHED",
+            "score": 8.30,
             "content_descriptors": ["action", "shounen"]
         }
     ]
@@ -216,6 +225,7 @@ def test_load_all_media_bulk_insert_with_updates(session):
             "external_url": "https://anilist.co/anime/269",
             "image_url": "https://img.com/bleach.jpg",
             "status": "FINISHED",
+            "score": 8.30,
             "content_descriptors": ["action"]
         }
     ]

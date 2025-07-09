@@ -12,6 +12,7 @@ def convert_media_entry(entry: dict) -> dict:
         "external_url": convert_external_url(entry.get("sources")),
         "image_url": entry.get("picture"),
         "status": convert_status(entry.get("status")),
+        "score": convert_score(entry.get("score")),
         "content_descriptors": entry.get("tags"),
     }
 
@@ -92,3 +93,10 @@ def convert_external_url(urls: list[str]) -> str | None:
 
     # Fallback to first URL
     return urls[0]
+
+
+def convert_score(score: dict) -> float | None:
+    if score is not None:
+        return score.get("median")
+    else:
+        return None

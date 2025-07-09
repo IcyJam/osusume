@@ -9,7 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Table,
     Enum,
-    func, UniqueConstraint,
+    func, UniqueConstraint, Float, CheckConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, relationship
 
@@ -56,7 +56,8 @@ media_content_descriptors = Table(
 class Media(Base):
     __tablename__ = "media"
     __table_args__ = (
-        UniqueConstraint("title", "type", "external_url",name="uq_media_title_type_url"),
+        UniqueConstraint("title", "type", "external_url", name="uq_media_title_type_url"),
+        CheckConstraint('score >= 0 AND score <= 10', name='score_range'),
     )
 
     media_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -68,6 +69,7 @@ class Media(Base):
     external_url = Column(Text, nullable=True)
     image_url = Column(Text, nullable=True)
     status = Column(Enum(Status, name="status"), nullable=True)
+    score = Column(Float, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
     updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 

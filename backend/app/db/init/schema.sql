@@ -30,6 +30,7 @@ CREATE TABLE "media"
     "external_url" text,
     "image_url"    text,
     "status"       status,
+    "score" float CHECK (score >= 0 AND score <= 10),
     "created_at"   timestamp default CURRENT_TIMESTAMP,
     "updated_at"   timestamp default CURRENT_TIMESTAMP,
     UNIQUE ("title", "type", "external_url")

@@ -5,24 +5,24 @@ from app.ingestion.converters.manami_converter import (
     convert_date,
     convert_status,
     convert_external_url,
-    convert_media_entry, convert_type
+    convert_media_entry, convert_type, convert_score
 )
 
 
 # ----------- convert_type -----------
 
-@pytest.mark.parametrize("input_dict,expected", [
-    ("TV","TV"),
-    ("MOVIE","MOVIE"),
-    ("OVA","OVA"),
-    ("ONA","ONA"),
-    ("SPECIAL","SPECIAL"),
-    ("OTHER","OTHER"),
-    ("UNKNOWN","OTHER"),
+@pytest.mark.parametrize("input_enum,expected", [
+    ("TV", "TV"),
+    ("MOVIE", "MOVIE"),
+    ("OVA", "OVA"),
+    ("ONA", "ONA"),
+    ("SPECIAL", "SPECIAL"),
+    ("OTHER", "OTHER"),
+    ("UNKNOWN", "OTHER"),
     (None, "OTHER"),
 ])
-def test_convert_type(input_dict, expected):
-    assert convert_type(input_dict) == expected
+def test_convert_type(input_enum, expected):
+    assert convert_type(input_enum) == expected
 
 
 # ----------- convert_date -----------
@@ -82,17 +82,33 @@ def test_convert_external_url_malformed_url():
     assert convert_external_url(urls) == "https://anilist.co/anime/9999"
 
 
+# -------------- convert_score --------------
+@pytest.mark.parametrize("input_dict,expected", [
+    ({"arithmeticGeometricMean": 6.310,
+      "arithmeticMean": 6.313,
+      "median": 6.374
+      }, 6.374),
+    ({}, None),
+    ({"bad_key": 10.0}, None),
+    ({"median": 10}, 10.0),
+    (None, None),
+])
+def test_convert_score(input_dict, expected):
+    assert convert_score(input_dict) == expected
+
+
 # ----------- convert_media_entry -----------
 
 def test_convert_media_entry_basic():
     entry = {
         "title": "Naruto",
-        "type":"TV",
+        "type": "TV",
         "animeSeason": {"season": "FALL", "year": 2002},
         "sources": ["https://anilist.co/anime/20"],
         "picture": "https://img.com/naruto.jpg",
         "status": "FINISHED",
-        "tags": ["shounen", "ninja"]
+        "tags": ["shounen", "ninja"],
+        "score":{"median": 8.30, "mean":8.00},
     }
 
     result = convert_media_entry(entry)
@@ -103,5 +119,6 @@ def test_convert_media_entry_basic():
     assert result["external_url"] == "https://anilist.co/anime/20"
     assert result["image_url"] == "https://img.com/naruto.jpg"
     assert result["content_descriptors"] == ["shounen", "ninja"]
+    assert result["score"] == 8.30
     assert result["summary"] is None
     assert result["end_date"] is None
