@@ -1,5 +1,5 @@
 from app.ingestion.scrapers.mangaupdates_scraper import DEFAULT_ID_STORE_PATH, DEFAULT_ID_STORE_FILE_NAME, \
-    get_all_manga_ids
+    get_all_manga_ids, DEFAULT_SERIES_STORE_ROOT, DEFAULT_ID_STORE_FILE_PATH, get_all_series
 
 
 def download_mangaupdates_series_ids(
@@ -20,6 +20,23 @@ def download_mangaupdates_series_ids(
             delay=delay,
             id_store_path=id_store_path,
             id_store_file_name=id_store_file_name,
+        )
+    except Exception as e:
+        print("An error occurred during import:", e)
+
+
+def download_mangaupdates_series(
+        id_store_file_path=DEFAULT_ID_STORE_FILE_PATH,
+        series_store_root=DEFAULT_SERIES_STORE_ROOT,
+        delay: float = 0.5,
+        max_in_flight=2,
+):
+    try:
+        get_all_series(
+            id_store_file_path=id_store_file_path,
+            series_store_root=series_store_root,
+            delay=delay,
+            max_in_flight=max_in_flight
         )
     except Exception as e:
         print("An error occurred during import:", e)

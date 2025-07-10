@@ -1,9 +1,13 @@
+import asyncio
 import json
+import random
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Sequence
 
 import httpx
+from tqdm import tqdm
 
 # Obtained from their API at https://api.mangaupdates.com/v1/genres on 2025.07.09
 GENRES = ['Action', 'Adult', 'Adventure', 'Comedy', 'Doujinshi', 'Drama', 'Ecchi', 'Fantasy', 'Gender Bender', 'Harem',
@@ -16,6 +20,8 @@ SERIES_URL = MANGAUPDATES_API_BASE_URL + "/series"
 SEARCH_URL = SERIES_URL + "/search"
 DEFAULT_ID_STORE_PATH = Path("/data/mangaupdates/ids")
 DEFAULT_ID_STORE_FILE_NAME = "series_ids.jsonl"
+DEFAULT_ID_STORE_FILE_PATH = Path("/data/mangaupdates/ids/series_ids.jsonl")
+DEFAULT_SERIES_STORE_ROOT = Path("/data/mangaupdates/series")
 
 
 def get_all_manga_ids(start_year_1=1900,
@@ -59,14 +65,14 @@ def get_all_manga_ids(start_year_1=1900,
             _f.write(json.dumps({"series_id": _record["series_id"]}) + "\n")
 
     def get_search_results(_payload):
-        headers = {
+        _headers = {
             "Authorization": "bearerAuth",
             "Content-Type": "application/json"
         }
         response = http_request_with_backoff(
             method="POST",
             url=SEARCH_URL,
-            headers=headers,
+            headers=_headers,
             json_payload=_payload,
             timeout=30,
             max_retries=5,
@@ -129,6 +135,110 @@ def get_all_manga_ids(start_year_1=1900,
     print(f"ID Scraping complete. Total unique IDs collected: {len(seen_ids)}")
 
 
+def _shard_dir(series_id: str | int) -> str:
+    """Return a 3‑digit shard directory based on the first 3 digits of the ID."""
+    return str(series_id).zfill(3)[:3]
+
+
+async def _fetch_and_store(
+        series_id: str,
+        series_store_root: Path,
+        headers: dict,
+        delay: float,
+        sem: asyncio.Semaphore,
+):
+    """Single asynchronous fetch wrapped in a semaphore."""
+    async with sem: # sem is the maximum number of concurrent requests
+        shard = _shard_dir(series_id)
+        series_path = series_store_root / shard
+        series_path.mkdir(parents=True, exist_ok=True)
+        file_path = series_path / f"{series_id}.json"
+
+        if file_path.exists():
+            return "skipped"
+
+        # Run the (sync) http_request_with_backoff in a thread to avoid blocking event loop
+        response = await asyncio.to_thread(
+            http_request_with_backoff,
+            method="GET",
+            url=f"{SERIES_URL}/{series_id}",
+            headers=headers,
+            delay=delay,
+        )
+
+        if response is None:
+            return "failed"
+
+        with open(file_path, "w", encoding="utf-8") as fp:
+            fp.write(response.text)
+
+        # Pause between this worker’s requests
+        await asyncio.sleep(delay + random.uniform(0,0.3))
+        return "downloaded"
+
+
+async def _run_all_tasks(
+        ids: Sequence[str],
+        series_store_root: Path,
+        delay: float,
+        max_in_flight: int,
+):
+    headers = {
+        "Authorization": "bearerAuth",
+        "Content-Type": "application/json",
+    }
+    sem = asyncio.Semaphore(max_in_flight)
+
+    tasks = [
+        _fetch_and_store(series_id, series_store_root, headers, delay, sem)
+        for series_id in ids
+    ]
+
+    downloaded = skipped = failed = 0
+    for future in tqdm(asyncio.as_completed(tasks), total=len(tasks), desc="Downloading series", unit="series"):
+        status = await future
+        if status == "downloaded":
+            downloaded += 1
+        elif status == "skipped":
+            skipped += 1
+        else:
+            failed += 1
+
+    return downloaded, skipped, failed, len(tasks)
+
+
+def get_all_series(
+        id_store_file_path: str | Path,
+        series_store_root: str | Path = DEFAULT_SERIES_STORE_ROOT,
+        delay: float = 0.5,
+        max_in_flight: int = 2,
+):
+    """
+    Download every series in `id_store_file_path` using up to `max_in_flight`
+    simultaneous requests.
+
+    :param id_store_file_path: Path to series_ids.jsonl containing all series IDs to download.
+    :param series_store_root : Root folder in which to store JSON files.
+    :param delay: Base delay (seconds) per worker.
+    :param max_in_flight: Number of HTTP requests allowed in flight at once.
+    """
+    series_store_root = Path(series_store_root)
+    series_store_root.mkdir(parents=True, exist_ok=True)
+
+    # Load all IDs
+    with open(id_store_file_path, "r", encoding="utf-8") as f:
+        ids = [json.loads(line)["series_id"] for line in f if line.strip()]
+
+    downloaded, skipped, failed, total = asyncio.run(
+        _run_all_tasks(ids, series_store_root, delay, max_in_flight)
+    )
+
+    print(
+        f"\nFinished. Downloaded {downloaded}, skipped {skipped}, "
+        f"failed {failed}, total IDs {total}."
+    )
+
+
 def http_request_with_backoff(
         method: str,
         url: str,
@@ -168,13 +278,13 @@ def http_request_with_backoff(
                 return response
             elif response.status_code in {429, 500, 502, 503, 504}:
                 sleep_time = delay * (2 ** attempt)
-                print(f"Retry {attempt + 1}/{max_retries} after {sleep_time}s due to status {response.status_code}")
+                tqdm.write(f"Retry {attempt + 1}/{max_retries} after {sleep_time}s due to status {response.status_code}")
                 time.sleep(sleep_time)
             else:
-                print(f"HTTP error {response.status_code}: {response.text}")
+                tqdm.write(f"HTTP error {response.status_code}: {response.text}")
                 return None
         except Exception as e:
             sleep_time = delay * (2 ** attempt)
-            print(f"Exception on attempt {attempt + 1}/{max_retries}: {e}. Retrying in {sleep_time}s")
+            tqdm.write(f"Exception on attempt {attempt + 1}/{max_retries}: {e}. Retrying in {sleep_time}s")
             time.sleep(sleep_time)
     return None
