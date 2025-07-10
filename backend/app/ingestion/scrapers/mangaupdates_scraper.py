@@ -77,13 +77,25 @@ def get_all_manga_ids(start_year_1=1900,
         return None
 
     def iterate_payloads():
-        """ Yields the right payload depending on the year range. """
+        """Yield search‑payload dictionaries, minimizing hit counts."""
+
+        # Years with <10 000 hits – no genre slicing needed
         for year in range(start_year_1, end_year_1 + 1):
             yield {"year": year}
 
+        # Years with potentially >10 000 hits – slice by genre,
+        # always excluding every genre we have already queried
         for year in range(start_year_2, end_year_2 + 1):
+            seen_genres: list[str] = []  # genres already used for this year
             for genre in GENRES:
-                yield {"year": year, "genre": [genre]}
+                yield {
+                    "year": year,
+                    "genre": [genre],
+                    "exclude_genre": seen_genres  # progressively larger exclusion list
+                }
+                seen_genres.append(genre)  # add current genre to exclusions
+
+            # Final catch‑all query (no genre), excluding all 36 genres
             yield {"year": year, "exclude_genre": GENRES}
 
     for payload in iterate_payloads():
