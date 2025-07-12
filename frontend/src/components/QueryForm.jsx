@@ -44,7 +44,7 @@ function QueryForm(){
                 value={query}
                 onChange={handleChange}
                 disabled={isLoading}
-                className="w-4xl p-5 border resize-none border-gray-300 rounded-3xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-600 "
+                className="w-full h-full p-5 border resize-none border-gray-300 rounded-3xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-600 "
                 placeholder="What would you like to be recommended?"
                 >
                 </textarea>
