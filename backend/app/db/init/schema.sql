@@ -5,6 +5,8 @@ CREATE TYPE "media_type" AS ENUM (
     'ONA',
     'SPECIAL',
     'MANGA',
+    'MANHWA',
+    'DOUJINSHI',
     'NOVEL',
     'ARTBOOK',
     'OTHER'

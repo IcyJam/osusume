@@ -10,22 +10,12 @@ from tqdm import tqdm
 
 def import_manami_from_repo():
     print("Importing media entries from Manami project database.")
-    try:
-        download_database(local_save_dir="")
-        print("✅ Download successful.")
-    except Exception as e:
-        print("❌ Failed to download:", e)
-        return
+    download_database(local_save_dir="")
+    print("✅ Download successful.")
 
-    try:
-        load_file_into_database(ANIME_DATABASE_ASSET_NAME)
-
-    except Exception as e:
-        print("An error occurred during import:", e)
-
-    finally:
-        print("Removing local file...")
-        os.remove(ANIME_DATABASE_ASSET_NAME)
+    load_file_into_database(ANIME_DATABASE_ASSET_NAME)
+    print("Removing local file...")
+    os.remove(ANIME_DATABASE_ASSET_NAME)
 
 
 def import_manami_from_file(filepath: str):
@@ -35,11 +25,7 @@ def import_manami_from_file(filepath: str):
         print(f"❌ File not found: {filepath}")
         return
 
-    try:
-        load_file_into_database(filepath)
-
-    except Exception as e:
-        print("An error occurred during import:", e)
+    load_file_into_database(filepath)
 
 
 def load_file_into_database(path: str):

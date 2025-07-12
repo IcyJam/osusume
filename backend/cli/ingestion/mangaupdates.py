@@ -1,7 +1,8 @@
 import typer
 
 from app.ingestion.pipelines.mangaupdates_import_pipeline import download_mangaupdates_series_ids, \
-    download_mangaupdates_series
+    download_mangaupdates_series, merge_mangaupdates_json, DEFAULT_MANGAUPDATES_JSON_STORE_ROOT, \
+    import_mangaupdates_from_file
 from app.ingestion.scrapers.mangaupdates_scraper import DEFAULT_ID_STORE_FILE_PATH, DEFAULT_SERIES_STORE_ROOT
 from app.ingestion.scrapers.mangaupdates_scraper import DEFAULT_ID_STORE_PATH, DEFAULT_ID_STORE_FILE_NAME
 
@@ -77,3 +78,47 @@ def download_all_series(
         delay=delay,
         max_in_flight=max_in_flight
     )
+
+
+@app.command()
+def merge_mangaupdates_series(
+        series_store_root: str = typer.Option(
+            default=DEFAULT_SERIES_STORE_ROOT,
+            help="Path of the directory where series JSONs are stored."
+        ),
+        output_dir=typer.Option(
+            default=DEFAULT_MANGAUPDATES_JSON_STORE_ROOT,
+            help="Path of the directory where the merged JSON will be stored."
+        ),
+        batch_size: int = typer.Option(
+            default=1_000,
+            help="Number of series to merge at once."
+        ),
+        max_workers: int = typer.Option(
+            default=8,
+            help="Maximum number of concurrent workers."
+        ),
+):
+    """ Merge downloaded JSONs and output a merged JSONL file at the output directory. """
+    merge_mangaupdates_json(
+        series_store_root=series_store_root,
+        output_dir=output_dir,
+        batch_size=batch_size,
+        max_workers=max_workers,
+    )
+
+
+@app.command()
+def from_file(
+        path: str = typer.Argument(..., help="JSONL file path"),
+        max_workers: int = typer.Option(
+            default=8,
+            help="Maximum number of concurrent workers for parallel conversion."
+        ),
+        batch_size: int = typer.Option(
+            default=5_000,
+            help="Number of converted entries inserted in one database batch."
+        ),
+):
+    """Ingest Mangaupdates from a local file."""
+    import_mangaupdates_from_file(path, max_workers=max_workers, batch_size=batch_size)

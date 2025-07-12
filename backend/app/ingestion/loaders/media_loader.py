@@ -91,7 +91,7 @@ def update_existing_media(existing_media, new_entry, media_type, status, descrip
 def load_all_media(session: Session, entries: list[dict]):
     media_cache = preload_media(session)
     content_descriptors_cache = preload_content_descriptors(session)
-    for entry in tqdm(entries, desc="Loading media"):
+    for entry in tqdm(entries, desc="Loading media", position=1, leave=False):
         title = entry.get("title")
         type_str = entry.get("type")
         external_url = entry.get("external_url")
