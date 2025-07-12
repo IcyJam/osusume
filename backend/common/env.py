@@ -10,10 +10,7 @@ def find_project_root(marker=".env") -> Path:
             return parent
     raise FileNotFoundError(f"Could not find {marker} in any parent directories.")
 
-
-project_root = find_project_root()
-load_dotenv(dotenv_path=project_root / ".env")
-
-
 def get_env_variable(var_name: str) -> str:
+    project_root = find_project_root()
+    load_dotenv(dotenv_path=project_root / ".env")
     return os.getenv(var_name)
