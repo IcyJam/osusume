@@ -4,7 +4,7 @@ import QueryForm 			from "./components/QueryForm";
 export default function App() {
   return (
 	<div>
-		<DraggableWindow id="draggable" label="お勧め">
+		<DraggableWindow id="welcomeWindow" label="お勧め">
 
 			<header>
 				<h1 className='flex justify-center items-center text-blue-400 pb-2 font-m-plus font-light'>Welcome to Osusume!</h1>
