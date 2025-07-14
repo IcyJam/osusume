@@ -1,13 +1,25 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useLayoutEffect} from "react";
 import { DndContext, useDraggable } from "@dnd-kit/core";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 
 export default function DraggableWindow({ id, children, label }) {					// TODO : Make the start position an attribute or placed relative to the icon
 	const [position, setPosition] = useState({ x: 100, y: 100 });					// Committed position, i.e. position before/after being dragged
 	const [isVisible, setIsVisible] = useState(false);								// Indicates if the window should be displayed
+
 	const [origin, setOrigin] = useState("top left");								// Position of the icon center relative to the window
 	const iconRef = useRef(null);													// Reference to the icon associated to the window
 	const windowRef = useRef(null);													// Reference to the window
+
+	useLayoutEffect(() => {															// Called after the DOM updates, but before the browser paints
+		if (iconRef.current && windowRef.current) {
+			const iconRect = iconRef.current.getBoundingClientRect();				// Gets the references to the icon and the window
+			const winRect = windowRef.current.getBoundingClientRect();
+
+			const originX = iconRect.left - winRect.left + iconRect.width / 2;		// Calculates the position of the center of the icon relative to the top left of the window
+			const originY = iconRect.top - winRect.top + iconRect.height / 2;		
+			setOrigin(`${originX}px ${originY}px`);									// Sets that position as the origin used for the scaling animation
+		}
+	}, [isVisible]);																// Condition to call useLayoutEffect > only run when isVisible becomes true
 
 	return (
 		<div>
@@ -21,8 +33,13 @@ export default function DraggableWindow({ id, children, label }) {					// TODO :
 					setPosition((p) => ({ x: p.x + delta.x, y: p.y + delta.y }));			// Adds the last drag delta to the committed coordinates
 				}}
 			>
-				<div className={`transition-all duration-250 ease-out absolute top-0 left-0 w-full h-full  ${					// Sets the transition between the visible and invisible states
-					isVisible ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"}`}>
+				<div ref={windowRef} style={{transformOrigin: origin}}						// Sets the scaling animation (origin point + behavior)
+					className={`
+						absolute top-0 left-0 w-full h-full
+						transition-all duration-200 ease-[cubic-bezier(0.6, 0.05, 0.28, 0.9)]
+						${isVisible ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-50 pointer-events-none"}
+					`}
+				>
 
 					<DraggableObject id={id} position={position} label={label} onClose={() => setIsVisible(false)}>
 						<div className="w-full">
