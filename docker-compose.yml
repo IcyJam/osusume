@@ -10,6 +10,7 @@ services:
       - ./data:/data
     depends_on:
       - db
+      - qdrant
 
   frontend:
     build: ./frontend
@@ -32,6 +33,22 @@ services:
       - pgdata:/var/lib/postgresql/data # for db persistence
       - ./backend/app/db/init:/docker-entrypoint-initdb.d # on first-time initialization only, Postgres executes all .sql or .sh files inside /docker-entrypoint-initdb.d
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: always
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    expose:
+      - 6333
+      - 6334
+      - 6335
+    configs:
+      - source: qdrant_config
+        target: /qdrant/config/production.yaml
+    volumes:
+      - qdrant_data:/qdrant/storage
+
   notebooks:
     build: ./notebooks
     ports:
@@ -44,3 +61,9 @@ services:
 
 volumes:
   pgdata:
+  qdrant_data:
+
+configs:
+  qdrant_config:
+    content: |
+      log_level: INFO

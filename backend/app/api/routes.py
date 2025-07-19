@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from app.clients.openai_client import get_openai_response
+from app.services.openai_service import get_openai_response
 
 
 class QueryRequest(BaseModel):  # Helps validate the JSON structure

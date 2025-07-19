@@ -1,33 +1,29 @@
+import openai
 from openai import OpenAI
-
 from common.env import get_env_variable
 
 
-def make_message(my_string: str):
-    return {"message": my_string}
+class OpenAIClient:
+    def __init__(self, api_key: str):
+        self.client = OpenAI(api_key=api_key)
 
-
-def get_openai_response(query: str):
-    if len(query) > 500:
-        return make_message("Sorry, your query was too long! Try to make it a bit shorter.")
-
-    else:
-        api_key = get_env_variable("OPENAI_API_KEY")
-
-        client = OpenAI(
-            api_key=api_key
-        )
-
-        response = client.responses.create(
+    def get_response(self, prompt: str, instructions: str):
+        response = self.client.responses.create(
             model="gpt-4.1-nano",
-            instructions="Generate a concise output (200 maximum), not using any formatting so that it displays properly in an external app. Only reply to the query, without any form of introduction.",
+            instructions=instructions,
             store=True,
-            input=[
-                {
-                    "role": "user",
-                    "content": query
-                },
-            ]
+            input=[{"role": "user", "content": prompt}]
         )
+        return response
 
-        return make_message(response.output_text)
+    def get_embedding(self, text: str) -> list[float]: # single embedding
+        response = self.client.embeddings.create(
+            model="text-embedding-3-small",
+            input=text
+        )
+        return response.data[0].embedding
+
+
+# Singleton instance
+openai_api_key = get_env_variable("OPENAI_API_KEY")
+openai_client = OpenAIClient(openai_api_key)

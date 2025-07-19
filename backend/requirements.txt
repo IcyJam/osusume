@@ -10,5 +10,7 @@ tqdm
 sqlalchemy
 psycopg2-binary
 
+qdrant-client
+
 pytest
 typer
