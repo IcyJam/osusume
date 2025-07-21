@@ -1,6 +1,14 @@
+import time
+from typing import List
+
+import math
 import openai
 from openai import OpenAI
+from tqdm import tqdm
+
 from common.env import get_env_variable
+
+MAXIMUM_EMBEDDING_REQUESTS_PER_MINUTE = 2500  # actual is 3000, lowered for safety https://platform.openai.com/settings/organization/limits
 
 
 class OpenAIClient:
@@ -16,12 +24,52 @@ class OpenAIClient:
         )
         return response
 
-    def get_embedding(self, text: str) -> list[float]: # single embedding
+    def get_embedding(self, text: str, model, dimensions) -> list[float]:  # single embedding
         response = self.client.embeddings.create(
-            model="text-embedding-3-small",
-            input=text
+            model=model,
+            input=text,
+            dimensions=dimensions
         )
         return response.data[0].embedding
+
+    def get_embeddings_batched(
+        self,
+        texts: List[str],
+        model: str,
+        dimensions: int,
+        batch_size: int = 256,
+        sleep_time: float = 0.5,
+        max_retries: int = 3,
+    ) -> List[List[float]]:
+        all_embeddings = []
+        total = len(texts)
+        num_batches = math.ceil(total / batch_size)
+
+        for i in range(num_batches):
+            start = i * batch_size
+            end = min(start + batch_size, total)
+            batch_texts = texts[start:end]
+
+            for attempt in range(max_retries):
+                try:
+                    response = self.client.embeddings.create(
+                        model=model,
+                        input=batch_texts,
+                        dimensions=dimensions,
+                    )
+                    batch_embeddings = [item.embedding for item in response.data]
+                    all_embeddings.extend(batch_embeddings)
+                    break  # Success, break retry loop
+                except Exception as e:
+                    print(f"Batch {i + 1}/{num_batches} failed on attempt {attempt + 1}: {e}")
+                    time.sleep(2 ** attempt)
+            else:
+                raise RuntimeError(f"Batch {i + 1} failed after {max_retries} retries.")
+
+            if sleep_time > 0 and i < num_batches - 1:
+                time.sleep(sleep_time)
+
+        return all_embeddings
 
 
 # Singleton instance

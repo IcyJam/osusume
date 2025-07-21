@@ -3,6 +3,7 @@ uvicorn
 httpx
 
 openai
+tiktoken
 
 python-dotenv
 tqdm

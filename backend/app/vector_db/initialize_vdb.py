@@ -1,120 +1,154 @@
-from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
+import json
+import os
+from typing import List
+
+from qdrant_client.models import Distance, VectorParams, PointStruct
+from sqlalchemy.orm import selectinload
 from tqdm import tqdm
 
-from app.services.openai_service import get_openai_embedding
+from app.db.models import Media, ContentDescriptor
+from app.services.openai_service import get_embeddings
+
+import re
+import string
+
+DEFAULT_MEDIA_COLLECTION_NAME = "media"
+DEFAULT_CD_COLLECTION_NAME = "content_descriptors"
+RECOVERY_FILE = "qdrant_processed_media_ids.json"
 
 
-def main():
-    client = QdrantClient(host="qdrant", port=6333)
+def sanitize_text(text: str | None) -> str:
+    if not text or not isinstance(text, str):
+        return ""
 
-    documents = [
-        {
-            "name": "The Time Machine",
-            "description": "A man travels through time and witnesses the evolution of humanity.",
-            "author": "H.G. Wells",
-            "year": 1895,
-        },
-        {
-            "name": "Ender's Game",
-            "description": "A young boy is trained to become a military leader in a war against an alien race.",
-            "author": "Orson Scott Card",
-            "year": 1985,
-        },
-        {
-            "name": "Brave New World",
-            "description": "A dystopian society where people are genetically engineered and conditioned to conform to a strict social hierarchy.",
-            "author": "Aldous Huxley",
-            "year": 1932,
-        },
-        {
-            "name": "The Hitchhiker's Guide to the Galaxy",
-            "description": "A comedic science fiction series following the misadventures of an unwitting human and his alien friend.",
-            "author": "Douglas Adams",
-            "year": 1979,
-        },
-        {
-            "name": "Dune",
-            "description": "A desert planet is the site of political intrigue and power struggles.",
-            "author": "Frank Herbert",
-            "year": 1965,
-        },
-        {
-            "name": "Foundation",
-            "description": "A mathematician develops a science to predict the future of humanity and works to save civilization from collapse.",
-            "author": "Isaac Asimov",
-            "year": 1951,
-        },
-        {
-            "name": "Snow Crash",
-            "description": "A futuristic world where the internet has evolved into a virtual reality metaverse.",
-            "author": "Neal Stephenson",
-            "year": 1992,
-        },
-        {
-            "name": "Neuromancer",
-            "description": "A hacker is hired to pull off a near-impossible hack and gets pulled into a web of intrigue.",
-            "author": "William Gibson",
-            "year": 1984,
-        },
-        {
-            "name": "The War of the Worlds",
-            "description": "A Martian invasion of Earth throws humanity into chaos.",
-            "author": "H.G. Wells",
-            "year": 1898,
-        },
-        {
-            "name": "The Hunger Games",
-            "description": "A dystopian society where teenagers are forced to fight to the death in a televised spectacle.",
-            "author": "Suzanne Collins",
-            "year": 2008,
-        },
-        {
-            "name": "The Andromeda Strain",
-            "description": "A deadly virus from outer space threatens to wipe out humanity.",
-            "author": "Michael Crichton",
-            "year": 1969,
-        },
-        {
-            "name": "The Left Hand of Darkness",
-            "description": "A human ambassador is sent to a planet where the inhabitants are genderless and can change gender at will.",
-            "author": "Ursula K. Le Guin",
-            "year": 1969,
-        },
-        {
-            "name": "The Three-Body Problem",
-            "description": "Humans encounter an alien civilization that lives in a dying system.",
-            "author": "Liu Cixin",
-            "year": 2008,
-        },
-    ]
-    client.create_collection(
-        collection_name="my_books",
+    text = text.lower().strip()  # Lowercase and strip leading/trailing whitespace
+    text = "".join(ch for ch in text if ch in string.printable)  # Remove non-printable/control characters
+    text = re.sub(r"\s+", " ", text)  # Collapse multiple whitespace characters into one space
+    text = re.sub(r"[^a-z0-9\s.,;:!?'-]", "", text)  # keep only alphanumerics and basic punctuation
+
+    return text
+
+
+def initialize_all_media(db_client, vdb_client, collection_name=DEFAULT_MEDIA_COLLECTION_NAME, batch_size=1000):
+    all_media: List[Media] = (
+        db_client
+        .query(Media)
+        .options(selectinload(Media.content_descriptors))
+        .all()
+    )
+    return initialize_media(all_media, vdb_client, collection_name=collection_name, batch_size=batch_size)
+
+
+def initialize_media(media_list, vdb_client, collection_name=DEFAULT_MEDIA_COLLECTION_NAME, batch_size=1000):
+    vdb_client.create_collection(
+        collection_name=collection_name,
         vectors_config=VectorParams(
-            size=1536,  # Used model defines vector size
+            size=1536,  # default for text-embedding-3-small
             distance=Distance.COSINE,
-        ),
+        )
     )
 
-    client.upload_points(
-        collection_name="my_books",
-        points=[
-            PointStruct(id=idx, vector=get_openai_embedding(doc["description"]), payload=doc)
-            for idx, doc in tqdm(enumerate(documents))
-        ],
+    # Load already processed IDs for recovery
+    if os.path.exists(RECOVERY_FILE):
+        with open(RECOVERY_FILE, "r") as f:
+            processed_ids = set(json.load(f))
+    else:
+        processed_ids = set()
+
+    media_list = [m for m in media_list if m.media_id not in processed_ids]
+
+    for i in tqdm(range(0, len(media_list), batch_size), desc="Initializing media"):
+        batch = media_list[i:i + batch_size]
+        media_data_to_embed = []
+        valid_media = []
+
+        for media in batch:
+            sanitized_summary = sanitize_text(media.summary)
+            sorted_tags = sorted(cd.content_descriptor for cd in media.content_descriptors)
+            combined_text = sanitized_summary + ", " + ", ".join(sorted_tags) if sanitized_summary \
+                else ", ".join(sorted_tags)
+
+            if combined_text.strip():
+                media_data_to_embed.append(combined_text)
+                valid_media.append(media)
+
+        if not valid_media:
+            continue
+
+        try:
+            vectors = get_embeddings(
+                texts=media_data_to_embed,
+                model="text-embedding-3-small",
+                dimensions=1536,
+            )
+        except Exception as e:
+            print(f"Embedding failed for batch {i // batch_size}: {e}")
+            continue
+
+        media_points = [
+            PointStruct(
+                id=media.media_id,
+                vector=vectors[idx],
+                payload={
+                    "title": media.title,
+                    "score": media.score,
+                    "type": media.type,
+                    "start_date": media.start_date,
+                    "status": media.status,
+                    "content_descriptors": [tag.content_descriptor for tag in media.content_descriptors],
+                }
+            )
+            for idx, media in enumerate(valid_media)
+        ]
+
+        try:
+            vdb_client.upsert(collection_name=collection_name, points=media_points)
+        except Exception as e:
+            print(f"Upsert failed for batch {i // batch_size}: {e}")
+            continue
+
+        # Save progress
+        processed_ids.update(m.media_id for m in valid_media)
+        with open(RECOVERY_FILE, "w") as f:
+            json.dump(list(processed_ids), f)
+
+
+def initialize_all_content_descriptors(db_client, vdb_client, collection_name=DEFAULT_CD_COLLECTION_NAME):
+    all_cd: List[ContentDescriptor] = (
+        db_client
+        .query(ContentDescriptor).all()
+        .options(selectinload(ContentDescriptor.media))
+    )
+    initialize_content_descriptors(all_cd, vdb_client, collection_name)
+
+
+def initialize_content_descriptors(cd_list, vdb_client, collection_name=DEFAULT_CD_COLLECTION_NAME):
+    vdb_client.create_collection(
+        collection_name=collection_name,
+        vectors_config=VectorParams(
+            size=1536,  # default for text-embedding-3-small
+            distance=Distance.COSINE,
+        )
     )
 
-    hits = client.query_points(
-        collection_name="my_books",
-        query=get_openai_embedding("alien invasion"),
-        limit=3,
-    ).points
+    cd_data_to_embed = [cd.content_descriptor for cd in cd_list]
 
-    for hit in hits:
-        print(hit.payload, "score:", hit.score)
+    vectors = get_embeddings(
+        texts=cd_data_to_embed,
+        model="text-embedding-3-small",
+        dimensions=1536,  # default for text-embedding-3-small, hardcoded in case it changes
+    )
 
+    cd_points = [
+        PointStruct(
+            id=cd.content_descriptor_id,
+            vector=vectors[idx],
+            payload={
+                "content_descriptor": cd.content_descriptor,
+                "usage_count": len(cd.media)
+            }
+        )
+        for idx, cd in enumerate(cd_list)
+    ]
 
-
-if __name__ == "__main__":
-    # main()
-    pass
+    vdb_client.upsert(collection_name=collection_name, points=cd_points)
