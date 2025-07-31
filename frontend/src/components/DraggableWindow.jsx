@@ -1,9 +1,8 @@
 import { useState, useRef, useLayoutEffect} from "react";
-import { DndContext, useDraggable } from "@dnd-kit/core";
-import { restrictToWindowEdges } from "@dnd-kit/modifiers";
+import { useDraggable, useDndMonitor } from "@dnd-kit/core";
 
-export default function DraggableWindow({ id, children, label }) {					// TODO : Make the start position an attribute or placed relative to the icon
-	const [position, setPosition] = useState({ x: 100, y: 100 });					// Committed position, i.e. position before/after being dragged
+export default function DraggableWindow({ id, children, label, buttonIcon }) {		
+	const [position, setPosition] = useState({ x: 100, y: -30 });					// Committed position, i.e. position before/after being dragged. The start position is slightly offset relative to the icon.
 	const [isVisible, setIsVisible] = useState(false);								// Indicates if the window should be displayed
 
 	const [origin, setOrigin] = useState("top left");								// Position of the icon center relative to the window
@@ -23,38 +22,43 @@ export default function DraggableWindow({ id, children, label }) {					// TODO :
 
 	return (
 		<div>
-			<div ref={iconRef} onDoubleClick={() => setIsVisible(true)}						// TODO : Placeholder button to open/close the window, to change and move to a separate object
-				className="cursor-pointer w-16 h-16 bg-blue-200 rounded flex items-center justify-center shadow-md absolute left-8 top-8"
-			></div>
-
-			<DndContext																		// Context that wraps around the draggable element
-				modifiers={[restrictToWindowEdges]}											// Makes it so that the draggable window can't go over the screen's borders
-				onDragEnd={({ delta }) => {													// Called when the user stops dragging
-					setPosition((p) => ({ x: p.x + delta.x, y: p.y + delta.y }));			// Adds the last drag delta to the committed coordinates
-				}}
+			<div ref={iconRef} onDoubleClick={() => setIsVisible(true)}
+				className="cursor-pointer w-20 h-20 mb-2"
 			>
+				<img src={buttonIcon} />
+			</div>
+
 				<div ref={windowRef} style={{transformOrigin: origin}}						// Sets the scaling animation (origin point + behavior)
 					className={`
-						absolute top-0 left-0 w-full h-full
+						
 						transition-all duration-200 ease-[cubic-bezier(0.6, 0.05, 0.28, 0.9)]
 						${isVisible ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-50 pointer-events-none"}
 					`}
 				>
 
-					<DraggableObject id={id} position={position} label={label} onClose={() => setIsVisible(false)}>
+					<DraggableObject id={id} position={position} label={label} onClose={() => setIsVisible(false)}
+						onDragEnd={(delta) => setPosition((p) => ({x: p.x + delta.x, y: p.y + delta.y,}))}
+					>
 						<div className="w-full">
 							{children}
 						</div>
 					</DraggableObject>
 
 				</div>
-			</DndContext>
 		</div>
 	);
 }
 
-function DraggableObject({ id, position, label, children, onClose }) {
+function DraggableObject({ id, position, label, children, onClose, onDragEnd }) {
 	const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });				// Returns all the attributes necessary to make an object Draggable
+
+	useDndMonitor({ 																						
+		onDragEnd(event) {
+			if (event.active.id === id && event.delta) {
+				onDragEnd?.(event.delta);																	// Commit the position when drag ends
+			}
+		},
+	});
 
 	const style = {
 		position: "absolute",
