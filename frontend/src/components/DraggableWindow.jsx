@@ -1,7 +1,8 @@
-import { useState, useRef, useLayoutEffect} from "react";
-import { useDraggable, useDndMonitor } from "@dnd-kit/core";
+import { useState, useRef, useLayoutEffect} 	from "react";
+import { useDraggable, useDndMonitor } 			from "@dnd-kit/core";
+import { headerColorMap } 						from "../utils/header_colors";
 
-export default function DraggableWindow({ id, children, label, buttonIcon }) {		
+export default function DraggableWindow({ id, children, label, buttonIcon, headerColor }) {		
 	const [position, setPosition] = useState({ x: 100, y: -30 });					// Committed position, i.e. position before/after being dragged. The start position is slightly offset relative to the icon.
 	const [isVisible, setIsVisible] = useState(false);								// Indicates if the window should be displayed
 
@@ -36,7 +37,7 @@ export default function DraggableWindow({ id, children, label, buttonIcon }) {
 					`}
 				>
 
-					<DraggableObject id={id} position={position} label={label} onClose={() => setIsVisible(false)}
+					<DraggableObject id={id} position={position} label={label} headerColor={headerColor} onClose={() => setIsVisible(false)}
 						onDragEnd={(delta) => setPosition((p) => ({x: p.x + delta.x, y: p.y + delta.y,}))}
 					>
 						<div className="w-full">
@@ -49,8 +50,10 @@ export default function DraggableWindow({ id, children, label, buttonIcon }) {
 	);
 }
 
-function DraggableObject({ id, position, label, children, onClose, onDragEnd }) {
+function DraggableObject({ id, position, label, headerColor, children, onClose, onDragEnd }) {
 	const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });				// Returns all the attributes necessary to make an object Draggable
+
+	const headerColorClass = headerColorMap[headerColor] || "bg-gray-300";
 
 	useDndMonitor({ 																						
 		onDragEnd(event) {
@@ -70,10 +73,10 @@ function DraggableObject({ id, position, label, children, onClose, onDragEnd }) 
 	};
 
 	return ( 																								// TODO : Style to define according to the global theme (colors, padding...)
-		<div ref={setNodeRef} {...attributes} style={style} className="rounded shadow-md bg-white border border-gray-300 w-4xl absolute">
+		<div ref={setNodeRef} {...attributes} style={style} className="rounded shadow-md bg-white border border-gray-300 absolute">
 		{/* |_ The whole div becomes draggable by giving it the 'setNodeRef' and 'attributes' */}
 
-			<div className="flex bg-blue-600 text-white rounded-t">
+			<div className={`flex ${headerColorClass} text-black rounded-t`}>
 			{/* |_ Header of the window */}
 
 				<div {...listeners} className="cursor-move flex-1 p-2">
@@ -81,7 +84,7 @@ function DraggableObject({ id, position, label, children, onClose, onDragEnd }) 
 					{label}
 				</div>
 
-				<button onClick={onClose} className="ml-auto font-bold text-white hover:text-red-800 pl-3 pr-3">
+				<button onClick={onClose} className="ml-auto font-bold text-black hover:text-red-800 pl-3 pr-3">
 				{/* |_ Button to close the window, 'ml-auto' pushes it to the far right of the header */}
 					✕
 				</button>

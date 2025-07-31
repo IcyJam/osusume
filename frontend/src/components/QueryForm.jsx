@@ -36,7 +36,7 @@ function QueryForm(){
 
 
     return(
-    <div>
+    <div className="w-4xl">
         <form onSubmit={handleSubmit}>
             <div className='m-5'>
                 <textarea
