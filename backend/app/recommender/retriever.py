@@ -1,0 +1,1 @@
+# Retrieve media from DB or vector DB
