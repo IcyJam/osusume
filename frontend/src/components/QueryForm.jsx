@@ -36,7 +36,7 @@ function QueryForm(){
 
 
     return(
-    <div>
+    <div className="w-4xl">
         <form onSubmit={handleSubmit}>
             <div className='m-5'>
                 <textarea
@@ -44,19 +44,19 @@ function QueryForm(){
                 value={query}
                 onChange={handleChange}
                 disabled={isLoading}
-                className="w-4xl p-5 border resize-none border-gray-300 rounded-3xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-600 "
+                className="w-full h-full p-5 border resize-none border-gray-300 rounded-3xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-600 "
                 placeholder="What would you like to be recommended?"
                 >
                 </textarea>
             </div>
 
-            <div>
+            <div className='flex items-center justify-center'>
                 <button
                 type="submit"
                 disabled={!query.trim()}
-                className={`w-25 px-4 py-2 text-white rounded-3xl ${isLoading || !query.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-700'}`}
+                className={`flex items-center justify-center w-25 h-12 px-4 py-2 text-white rounded-3xl ${isLoading || !query.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-700'}`}
                 >
-                {isLoading ? 'Loading...' : 'Submit'}
+                {isLoading ? <img src="/loading.gif" className="w-7 h-7"/> : 'Submit'}
                 </button>
             </div>
         </form>
