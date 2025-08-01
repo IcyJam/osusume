@@ -1,3 +1,4 @@
+import { useWindowContext } 					from "./WindowContext";
 import { useState, useRef, useLayoutEffect} 	from "react";
 import { useDraggable, useDndMonitor } 			from "@dnd-kit/core";
 import { headerColorMap } 						from "../utils/header_colors";
@@ -9,6 +10,10 @@ export default function DraggableWindow({ id, children, label, buttonIcon, heade
 	const [origin, setOrigin] = useState("top left");								// Position of the icon center relative to the window
 	const iconRef = useRef(null);													// Reference to the icon associated to the window
 	const windowRef = useRef(null);													// Reference to the window
+
+	const { _, bringToFront, zIndexMap } = useWindowContext();						// Context information necessary to handle the window focus
+	const zIndex = zIndexMap[id] || 1;												
+	const takeFocus = () => bringToFront(id);										
 
 	useLayoutEffect(() => {															// Called after the DOM updates, but before the browser paints
 		if (iconRef.current && windowRef.current) {
@@ -23,29 +28,40 @@ export default function DraggableWindow({ id, children, label, buttonIcon, heade
 
 	return (
 		<div>
-			<div ref={iconRef} onDoubleClick={() => setIsVisible(true)}
+
+			<div 
+				ref={iconRef} 
+				onDoubleClick={() => { bringToFront(id); setIsVisible(true); }} 		// When double-clicking on the icon, the window appears and takes focus
 				className="cursor-pointer w-20 h-20 mb-2"
 			>
 				<img src={buttonIcon} />
 			</div>
 
-				<div ref={windowRef} style={{transformOrigin: origin}}						// Sets the scaling animation (origin point + behavior)
-					className={`
-						
-						transition-all duration-200 ease-[cubic-bezier(0.6, 0.05, 0.28, 0.9)]
-						${isVisible ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-50 pointer-events-none"}
-					`}
+			<div 
+				ref={windowRef} 
+				onMouseDown={takeFocus}
+				style={{ transformOrigin: origin, zIndex, position: "relative" }}	// Sets the scaling animation (origin point + behavior) and the zIndex for focus (/!\ "relative" is necessary for zIndex to be in effect)
+				className={`
+					transition-all duration-200 ease-[cubic-bezier(0.6, 0.05, 0.28, 0.9)]
+					${isVisible ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-50 pointer-events-none"}
+				`}
+			>
+
+				<DraggableObject 
+					id={id} 
+					position={position} 
+					label={label} 
+					headerColor={headerColor} 
+					onClose={() => setIsVisible(false)}
+					onDragEnd={(delta) => setPosition((p) => ({x: p.x + delta.x, y: p.y + delta.y,}))}
 				>
+					<div className="w-full">
+						{children}
+					</div>
+				</DraggableObject>
 
-					<DraggableObject id={id} position={position} label={label} headerColor={headerColor} onClose={() => setIsVisible(false)}
-						onDragEnd={(delta) => setPosition((p) => ({x: p.x + delta.x, y: p.y + delta.y,}))}
-					>
-						<div className="w-full">
-							{children}
-						</div>
-					</DraggableObject>
+			</div>
 
-				</div>
 		</div>
 	);
 }
@@ -53,7 +69,7 @@ export default function DraggableWindow({ id, children, label, buttonIcon, heade
 function DraggableObject({ id, position, label, headerColor, children, onClose, onDragEnd }) {
 	const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });				// Returns all the attributes necessary to make an object Draggable
 
-	const headerColorClass = headerColorMap[headerColor] || "bg-gray-300";
+	const headerColorClass = headerColorMap[headerColor] || "bg-gray-300";									// Gets the color of the header
 
 	useDndMonitor({ 																						
 		onDragEnd(event) {
@@ -68,7 +84,6 @@ function DraggableObject({ id, position, label, headerColor, children, onClose, 
 		top: position.y,																					// Real layout position from which the delta is calculated
 		left: position.x,
 		transform: `translate3d(${transform ? transform.x : 0}px, ${transform ? transform.y : 0}px, 0)`,	// Position defined relatively to parent, changes while dragging
-		zIndex: isDragging ? 1000 : 1,																		// TODO : Takes the focus when being dragged, to change for multiple windows
 		cursor: 'grab',
 	};
 
