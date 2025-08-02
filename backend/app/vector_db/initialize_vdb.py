@@ -12,8 +12,9 @@ from app.services.openai_service import get_embeddings
 import re
 import string
 
-DEFAULT_MEDIA_COLLECTION_NAME = "media"
-DEFAULT_CD_COLLECTION_NAME = "content_descriptors"
+from app.vector_db.vector_database import DEFAULT_MEDIA_COLLECTION_NAME, DEFAULT_CD_COLLECTION_NAME
+from common.env import get_env_variable
+
 RECOVERY_FILE = "qdrant_processed_media_ids.json"
 
 
@@ -40,10 +41,11 @@ def initialize_all_media(db_client, vdb_client, collection_name=DEFAULT_MEDIA_CO
 
 
 def initialize_media(media_list, vdb_client, collection_name=DEFAULT_MEDIA_COLLECTION_NAME, batch_size=1000):
+    # Create collection in VDB
     vdb_client.create_collection(
         collection_name=collection_name,
         vectors_config=VectorParams(
-            size=1536,  # default for text-embedding-3-small
+            size=int(get_env_variable("EMBEDDING_DIMENSIONS")),
             distance=Distance.COSINE,
         )
     )
@@ -62,12 +64,15 @@ def initialize_media(media_list, vdb_client, collection_name=DEFAULT_MEDIA_COLLE
         media_data_to_embed = []
         valid_media = []
 
+        # Embed media in batch
         for media in batch:
+            # Process string
             sanitized_summary = sanitize_text(media.summary)
             sorted_tags = sorted(cd.content_descriptor for cd in media.content_descriptors)
             combined_text = sanitized_summary + ", " + ", ".join(sorted_tags) if sanitized_summary \
                 else ", ".join(sorted_tags)
 
+            # Add media to the list of valid media to process if the text to embed is not empty
             if combined_text.strip():
                 media_data_to_embed.append(combined_text)
                 valid_media.append(media)
@@ -78,8 +83,8 @@ def initialize_media(media_list, vdb_client, collection_name=DEFAULT_MEDIA_COLLE
         try:
             vectors = get_embeddings(
                 texts=media_data_to_embed,
-                model="text-embedding-3-small",
-                dimensions=1536,
+                model=get_env_variable("EMBEDDING_MODEL"),
+                dimensions=int(get_env_variable("EMBEDDING_DIMENSIONS")),
             )
         except Exception as e:
             print(f"Embedding failed for batch {i // batch_size}: {e}")

@@ -1,9 +1,9 @@
 import typer
 
 from app.db.database import SessionLocal
-from app.vector_db.initialize_vdb import initialize_all_media, initialize_all_content_descriptors, \
-    DEFAULT_MEDIA_COLLECTION_NAME, DEFAULT_CD_COLLECTION_NAME
-from app.vector_db.vector_database import vector_database_client
+from app.vector_db.initialize_vdb import initialize_all_media, initialize_all_content_descriptors
+from app.vector_db.vector_database import vector_database_client, DEFAULT_MEDIA_COLLECTION_NAME, \
+    DEFAULT_CD_COLLECTION_NAME
 
 app = typer.Typer()
 

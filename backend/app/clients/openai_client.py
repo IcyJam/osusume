@@ -24,6 +24,13 @@ class OpenAIClient:
         )
         return response
 
+    def get_response_from_prompt_id(self, user_input: str, prompt_id: str):
+        response = self.client.responses.create(
+            prompt={"id": prompt_id},
+            input=user_input
+        )
+        return response.output[0].content[0].text
+
     def get_embedding(self, text: str, model, dimensions) -> list[float]:  # single embedding
         response = self.client.embeddings.create(
             model=model,
@@ -33,13 +40,13 @@ class OpenAIClient:
         return response.data[0].embedding
 
     def get_embeddings_batched(
-        self,
-        texts: List[str],
-        model: str,
-        dimensions: int,
-        batch_size: int = 256,
-        sleep_time: float = 0.5,
-        max_retries: int = 3,
+            self,
+            texts: List[str],
+            model: str,
+            dimensions: int,
+            batch_size: int = 256,
+            sleep_time: float = 0.5,
+            max_retries: int = 3,
     ) -> List[List[float]]:
         all_embeddings = []
         total = len(texts)

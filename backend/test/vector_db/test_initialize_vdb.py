@@ -8,6 +8,7 @@ from qdrant_client.models import VectorParams, Distance
 
 from app.vector_db.initialize_vdb import initialize_media, initialize_content_descriptors, RECOVERY_FILE
 
+# FIXME these tests will pass as long as the env variable EMBEDDING_DIMENSIONS=1536. Should mock get_env_variable
 
 @dataclass
 class MockDescriptor:
