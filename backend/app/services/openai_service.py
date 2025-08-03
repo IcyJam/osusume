@@ -1,11 +1,11 @@
 import json
 import re
 from typing import List
+
 import tiktoken
 from tqdm import tqdm
 
 from app.clients.openai_client import openai_client
-from common.env import get_env_variable
 
 
 class QueryValidationError(Exception):
@@ -124,11 +124,11 @@ def sanitize_llm_query(query: str) -> str:
     return query
 
 
-def get_processed_recommender_query(user_query):
+def get_processed_recommender_query(user_query, reusable_prompt_id):
     try:
         clean_query = sanitize_llm_query(user_query)
-        prompt_id = get_env_variable("QUERY_PROCESSING_PROMPT_ID")
-        response = openai_client.get_response_from_prompt_id(user_input=clean_query, prompt_id=prompt_id)
+        reusable_prompt_id = reusable_prompt_id
+        response = openai_client.get_response_from_prompt_id(user_input=clean_query, prompt_id=reusable_prompt_id)
 
         try:
             response_dict = json.loads(response.strip())

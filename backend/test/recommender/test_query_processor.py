@@ -86,9 +86,9 @@ def test_parse_status_constraints(data, included, excluded):
 
 def test_process_query_integration(monkeypatch, raw_query_dict):
     # Mock get_processed_query to return our fixture
-    monkeypatch.setattr("app.recommender.query_processor.get_processed_query", lambda _: raw_query_dict)
+    monkeypatch.setattr("app.recommender.query_processor.get_processed_recommender_query", lambda _, __: raw_query_dict)
 
-    result = process_query("any user input")
+    result = process_query("any user input", prompt_id="123")
     assert isinstance(result, ProcessedRecommenderQuery)
     assert result.embedding_text == "An anime with action and adventure"
     assert "action" in result.keywords

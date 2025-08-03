@@ -1,11 +1,13 @@
-from typing import Optional
+from typing import Optional, List
 
 from qdrant_client import QdrantClient
-from qdrant_client.fastembed_common import QueryResponse
-from qdrant_client.http.models import MatchValue, FieldCondition, Range, Filter, DatetimeRange
+from qdrant_client.http.models import MatchValue, FieldCondition, Range, Filter, DatetimeRange, ScoredPoint
+from sqlalchemy import select
 
+from app.db.database import SessionLocal
+from app.db.models import Media
 from app.recommender.models import EmbeddedRecommenderQuery, ProcessedRecommenderQuery, RecommenderQueryHardConstraints
-from app.vector_db.vector_database import DEFAULT_MEDIA_COLLECTION_NAME
+from app.vector_db.vector_database import DEFAULT_MEDIA_COLLECTION_NAME, get_top_k_from_media
 
 
 def build_filter_from_constraints(
@@ -107,19 +109,23 @@ def build_filter_from_constraints(
 def retrieve_top_k(
         embedded_query: EmbeddedRecommenderQuery,
         processed_query: ProcessedRecommenderQuery,
-        client: QdrantClient,
         k: int
-) -> QueryResponse:
+) -> List[ScoredPoint]:
     """
-    Retrieve the top-k closest vectors to the embedded query from Qdrant,
+    Retrieve the top-k closest vectors to the embedded query from the vector database,
     applying filtering based on processed query's hard constraints.
     """
+    print("Retrieving top-k vectors from vector database...")
     vdb_filter = build_filter_from_constraints(processed_query.hard_constraints)
+    return get_top_k_from_media(vector=embedded_query.vector, k=k, vdb_filter=vdb_filter)
 
-    response = client.query_points(
-        collection_name=DEFAULT_MEDIA_COLLECTION_NAME,
-        query=embedded_query.vector,
-        limit=k,
-        query_filter=vdb_filter
-    )
-    return response
+
+def retrieve_media(media_ids: List[int]) -> List[Media]:
+    print("Retrieving media from database...")
+    if not media_ids:
+        return []
+
+    with SessionLocal() as db_client:
+        query = select(Media).where(Media.media_id.in_(media_ids))
+        results = db_client.execute(query).scalars().all()  # scalars() returns single elements instead of row objects
+        return results

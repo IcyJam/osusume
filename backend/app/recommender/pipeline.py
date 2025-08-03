@@ -1,13 +1,31 @@
-# LLM generates rich text + keywords + hard constraints from the query (stored as JSON?)
+from typing import List
+
+from pydantic import BaseModel
+
+from app.db.models import Media
+from app.recommender.embedder import embed_processed_query
+from app.recommender.query_processor import process_query
+from app.recommender.reranker import rerank
+from app.recommender.retriever import retrieve_top_k, retrieve_media
 
 
-# The LLM output is embedded in the same space as the media VDB
+class RecommenderConfiguration(BaseModel):
+    embedder:str
+    dimensions:int
+    prompt_id:str
+    top_k:int
+    n_selected:int
 
-
-# This vector is used to get the "top K" closest media, taking hard constraints into account (payload filtering)
-
-
-# The top K are re-ranked [find a way]
-
-
-# The selected media in the top K are queried from the media DB and returned
+def get_recommendations(user_query:str, cfg:RecommenderConfiguration) -> List[Media]:
+    """
+    Get media recommendations for a user query.
+    :param user_query: User recommendation query.
+    :param cfg: Recommender configuration.
+    :return: A list of Media objects from the database.
+    """
+    processed_query     = process_query(user_query=user_query, prompt_id=cfg.prompt_id)
+    embedded_query      = embed_processed_query(model=cfg.embedder, dimensions=cfg.dimensions, query=processed_query)
+    k_closest_points    = retrieve_top_k(embedded_query=embedded_query, processed_query=processed_query, k=cfg.top_k)
+    selected_media_ids  = rerank(points=k_closest_points, n_selected=cfg.n_selected)
+    selected_media      = retrieve_media(media_ids=selected_media_ids)
+    return selected_media

@@ -45,10 +45,14 @@ def parse_hard_constraints(data: Dict[str, Any]) -> RecommenderQueryHardConstrai
 
 # --- Main function ---
 
-def process_query(user_query) -> ProcessedRecommenderQuery:
-    raw_query = get_processed_recommender_query(user_query)
-    return ProcessedRecommenderQuery(
+def process_query(user_query, prompt_id) -> ProcessedRecommenderQuery:
+    """ Process the user recommendation query using an LLM and return it as an object. """
+    print(f"Processing query: {user_query}")
+    raw_query = get_processed_recommender_query(user_query, prompt_id)
+    processed_query = ProcessedRecommenderQuery(
         embedding_text=raw_query["embedding_text"],
         keywords=raw_query["keywords"],
         hard_constraints=parse_hard_constraints(raw_query["hard_constraints"])
     )
+    print(f"Query successfully processed: {processed_query}")
+    return processed_query

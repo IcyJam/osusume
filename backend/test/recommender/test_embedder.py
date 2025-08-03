@@ -29,12 +29,8 @@ def test_embed_processed_query(monkeypatch, sample_processed_query):
         return [0.1, 0.2, 0.3]
 
     monkeypatch.setattr("app.recommender.embedder.get_embedding", fake_embedding)
-    monkeypatch.setattr(
-        "app.recommender.embedder.get_env_variable",
-        lambda key: "test-model" if key == "EMBEDDING_MODEL" else "3"
-    )
 
-    result = embed_processed_query(sample_processed_query)
+    result = embed_processed_query(query=sample_processed_query, model="model", dimensions=3)
 
     # Assertions
     assert isinstance(result, EmbeddedRecommenderQuery)
