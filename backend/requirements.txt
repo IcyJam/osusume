@@ -6,6 +6,7 @@ openai
 tiktoken
 
 python-dotenv
+pyyaml
 tqdm
 
 sqlalchemy

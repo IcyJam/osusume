@@ -7,8 +7,8 @@ from pydantic.dataclasses import dataclass
 from qdrant_client.models import VectorParams, Distance
 
 from app.vector_db.initialize_vdb import initialize_media, initialize_content_descriptors, RECOVERY_FILE
+from common.config.recommender.recommender_config import RecommenderConfiguration
 
-# FIXME these tests will pass as long as the env variable EMBEDDING_DIMENSIONS=1536. Should mock get_env_variable
 
 @dataclass
 class MockDescriptor:
@@ -69,25 +69,36 @@ def fake_content_descriptors():
     ]
 
 
+@pytest.fixture
+def mock_config():
+    return RecommenderConfiguration(
+        embedder="embedder_model",
+        dimensions=123,
+        prompt_id="123abc",
+        top_k=10,
+        n_selected=5,
+    )
+
+
 @patch("app.vector_db.initialize_vdb.get_embeddings")  # Patch where it's imported, not where it's defined
-def test_initialize_media(mock_get_embeddings, fake_media_entries):
+def test_initialize_media(mock_get_embeddings, fake_media_entries, mock_config):
     try:
         # Setup
         vdb_client = MagicMock()
 
         mock_get_embeddings.return_value = [
-            [0.1] * 1536,
-            [0.2] * 1536,
+            [0.1] * 123,
+            [0.2] * 123,
         ]
 
         # Call
-        initialize_media(fake_media_entries, vdb_client, collection_name="test_media")
+        initialize_media(fake_media_entries, vdb_client, collection_name="test_media", config=mock_config)
 
         # Assertions
         vdb_client.create_collection.assert_called_once_with(
             collection_name="test_media",
             vectors_config=VectorParams(
-                size=1536,
+                size=123,
                 distance=Distance.COSINE,
             ),
         )
@@ -97,8 +108,8 @@ def test_initialize_media(mock_get_embeddings, fake_media_entries):
                 "heroes, action, school",
                 "sad, drama, war"
             ],
-            model="text-embedding-3-small",
-            dimensions=1536,
+            model="embedder_model",
+            dimensions=123,
         )
 
         # Capture the points
@@ -107,37 +118,38 @@ def test_initialize_media(mock_get_embeddings, fake_media_entries):
         assert len(uploaded_points) == 2
         assert uploaded_points[0].id == 1
         assert uploaded_points[0].payload["title"] == "My Hero Academia"
-        assert uploaded_points[1].vector == [0.2] * 1536
+        assert uploaded_points[1].vector == [0.2] * 123
     finally:
-        os.remove(RECOVERY_FILE)
+        if os.path.exists(RECOVERY_FILE):
+            os.remove(RECOVERY_FILE)
 
 
 @patch("app.vector_db.initialize_vdb.get_embeddings")
-def test_initialize_content_descriptors(mock_get_embeddings, fake_content_descriptors):
+def test_initialize_content_descriptors(mock_get_embeddings, fake_content_descriptors, mock_config):
     # Setup
     vdb_client = MagicMock()
 
     mock_get_embeddings.return_value = [
-        [0.1] * 1536,
-        [0.2] * 1536,
+        [0.1] * 123,
+        [0.2] * 123,
     ]
 
     # Call
-    initialize_content_descriptors(fake_content_descriptors, vdb_client, collection_name="test_cd")
+    initialize_content_descriptors(fake_content_descriptors, vdb_client, collection_name="test_cd", config=mock_config)
 
     # Assertions
     vdb_client.create_collection.assert_called_once_with(
         collection_name="test_cd",
         vectors_config=VectorParams(
-            size=1536,
+            size=123,
             distance=Distance.COSINE,
         ),
     )
 
     mock_get_embeddings.assert_called_once_with(
         texts=["action", "drama"],
-        model="text-embedding-3-small",
-        dimensions=1536,
+        model="embedder_model",
+        dimensions=123,
     )
 
     uploaded_points = vdb_client.upsert.call_args.kwargs["points"]
@@ -146,4 +158,4 @@ def test_initialize_content_descriptors(mock_get_embeddings, fake_content_descri
     assert uploaded_points[0].id == 1
     assert uploaded_points[0].payload["content_descriptor"] == "action"
     assert uploaded_points[0].payload["usage_count"] == 2
-    assert uploaded_points[1].vector == [0.2] * 1536
+    assert uploaded_points[1].vector == [0.2] * 123

@@ -1,20 +1,12 @@
 from typing import List
 
-from pydantic import BaseModel
-
 from app.db.models import Media
 from app.recommender.embedder import embed_processed_query
 from app.recommender.query_processor import process_query
 from app.recommender.reranker import rerank
 from app.recommender.retriever import retrieve_top_k, retrieve_media
+from common.config.recommender.recommender_config import RecommenderConfiguration
 
-
-class RecommenderConfiguration(BaseModel):
-    embedder:str
-    dimensions:int
-    prompt_id:str
-    top_k:int
-    n_selected:int
 
 def get_recommendations(user_query:str, cfg:RecommenderConfiguration) -> List[Media]:
     """

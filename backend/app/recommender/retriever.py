@@ -128,4 +128,5 @@ def retrieve_media(media_ids: List[int]) -> List[Media]:
     with SessionLocal() as db_client:
         query = select(Media).where(Media.media_id.in_(media_ids))
         results = db_client.execute(query).scalars().all()  # scalars() returns single elements instead of row objects
+        print(f"Retrieved media: {results}")
         return results

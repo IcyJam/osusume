@@ -13,7 +13,7 @@ import re
 import string
 
 from app.vector_db.vector_database import DEFAULT_MEDIA_COLLECTION_NAME, DEFAULT_CD_COLLECTION_NAME
-from common.env import get_env_variable
+from common.config.recommender.recommender_config import RecommenderConfiguration, get_recommender_config
 
 RECOVERY_FILE = "qdrant_processed_media_ids.json"
 
@@ -30,22 +30,45 @@ def sanitize_text(text: str | None) -> str:
     return text
 
 
-def initialize_all_media(db_client, vdb_client, collection_name=DEFAULT_MEDIA_COLLECTION_NAME, batch_size=1000):
+def initialize_all_media(
+        db_client, vdb_client,
+        collection_name=DEFAULT_MEDIA_COLLECTION_NAME,
+        batch_size=1000,
+        config: RecommenderConfiguration = None,
+):
+    if config is None:
+        config = get_recommender_config()
+
     all_media: List[Media] = (
         db_client
         .query(Media)
         .options(selectinload(Media.content_descriptors))
         .all()
     )
-    return initialize_media(all_media, vdb_client, collection_name=collection_name, batch_size=batch_size)
+    return initialize_media(
+        all_media,
+        vdb_client,
+        collection_name=collection_name,
+        batch_size=batch_size,
+        config=config
+    )
 
 
-def initialize_media(media_list, vdb_client, collection_name=DEFAULT_MEDIA_COLLECTION_NAME, batch_size=1000):
+def initialize_media(
+        media_list,
+        vdb_client,
+        collection_name=DEFAULT_MEDIA_COLLECTION_NAME,
+        batch_size=1000,
+        config: RecommenderConfiguration = None
+):
+    if config is None:
+        config = get_recommender_config()
+
     # Create collection in VDB
     vdb_client.create_collection(
         collection_name=collection_name,
         vectors_config=VectorParams(
-            size=int(get_env_variable("EMBEDDING_DIMENSIONS")),
+            size=config.dimensions,
             distance=Distance.COSINE,
         )
     )
@@ -83,8 +106,8 @@ def initialize_media(media_list, vdb_client, collection_name=DEFAULT_MEDIA_COLLE
         try:
             vectors = get_embeddings(
                 texts=media_data_to_embed,
-                model=get_env_variable("EMBEDDING_MODEL"),
-                dimensions=int(get_env_variable("EMBEDDING_DIMENSIONS")),
+                model=config.embedder,
+                dimensions=config.dimensions,
             )
         except Exception as e:
             print(f"Embedding failed for batch {i // batch_size}: {e}")
@@ -118,20 +141,36 @@ def initialize_media(media_list, vdb_client, collection_name=DEFAULT_MEDIA_COLLE
             json.dump(list(processed_ids), f)
 
 
-def initialize_all_content_descriptors(db_client, vdb_client, collection_name=DEFAULT_CD_COLLECTION_NAME):
+def initialize_all_content_descriptors(
+        db_client,
+        vdb_client,
+        collection_name=DEFAULT_CD_COLLECTION_NAME,
+        config=None,
+):
+    if config is None:
+        config = get_recommender_config()
+
     all_cd: List[ContentDescriptor] = (
         db_client
         .query(ContentDescriptor).all()
         .options(selectinload(ContentDescriptor.media))
     )
-    initialize_content_descriptors(all_cd, vdb_client, collection_name)
+    initialize_content_descriptors(all_cd, vdb_client, collection_name, config)
 
 
-def initialize_content_descriptors(cd_list, vdb_client, collection_name=DEFAULT_CD_COLLECTION_NAME):
+def initialize_content_descriptors(
+        cd_list,
+        vdb_client,
+        collection_name=DEFAULT_CD_COLLECTION_NAME,
+        config=None,
+):
+    if config is None:
+        config = get_recommender_config()
+
     vdb_client.create_collection(
         collection_name=collection_name,
         vectors_config=VectorParams(
-            size=1536,  # default for text-embedding-3-small
+            size=config.dimensions,
             distance=Distance.COSINE,
         )
     )
@@ -140,8 +179,8 @@ def initialize_content_descriptors(cd_list, vdb_client, collection_name=DEFAULT_
 
     vectors = get_embeddings(
         texts=cd_data_to_embed,
-        model="text-embedding-3-small",
-        dimensions=1536,  # default for text-embedding-3-small, hardcoded in case it changes
+        model=config.embedder,
+        dimensions=config.dimensions,
     )
 
     cd_points = [
