@@ -1,5 +1,18 @@
-fastapi==0.75.0
-uvicorn==0.15.0
+fastapi
+uvicorn
+httpx
 
 openai
+tiktoken
+
 python-dotenv
+pyyaml
+tqdm
+
+sqlalchemy
+psycopg2-binary
+
+qdrant-client
+
+pytest
+typer

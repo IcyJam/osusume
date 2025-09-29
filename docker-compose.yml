@@ -1,5 +1,3 @@
-version: '3.11'
-
 services:
   backend:
     build: ./backend
@@ -7,6 +5,12 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/app:/code/app
+      - ./backend/cli:/code/cli
+      - ./backend/test:/code/test
+      - ./data:/data
+    depends_on:
+      - db
+      - qdrant
 
   frontend:
     build: ./frontend
@@ -18,11 +22,48 @@ services:
     depends_on:
       - backend
 
+  db:
+    image: postgres:16
+    restart: always
+    ports:
+      - "5432:5432"
+    env_file:
+      - backend/.env
+    volumes:
+      - pgdata:/var/lib/postgresql/data # for db persistence
+      - ./backend/app/db/init:/docker-entrypoint-initdb.d # on first-time initialization only, Postgres executes all .sql or .sh files inside /docker-entrypoint-initdb.d
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: always
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    expose:
+      - 6333
+      - 6334
+      - 6335
+    configs:
+      - source: qdrant_config
+        target: /qdrant/config/production.yaml
+    volumes:
+      - qdrant_data:/qdrant/storage
+
   notebooks:
     build: ./notebooks
     ports:
-      - "9999:9999" # map port 8888 in the container to port 9999 on the machine, as it is already being used
+      - "9999:9999"
     volumes:
       - ./notebooks:/notebooks
+      - ./data:/data
     depends_on:
       - backend
+
+volumes:
+  pgdata:
+  qdrant_data:
+
+configs:
+  qdrant_config:
+    content: |
+      log_level: INFO

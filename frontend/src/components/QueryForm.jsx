@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const API_URL = 'http://localhost:8000/chat'
+const API_URL = 'http://localhost:8000/recommend'
 
 function QueryForm(){
     const [query, setQuery]         = useState('')

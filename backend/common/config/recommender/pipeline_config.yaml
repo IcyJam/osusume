@@ -1,0 +1,5 @@
+embedder: "text-embedding-3-small"
+dimensions: 1536
+prompt_id: "pmpt_688bd313d2788194a31f6958c4f7b4390b3b3ff7093060f7"
+top_k: 10
+n_selected: 5
