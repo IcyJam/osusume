@@ -29,7 +29,7 @@ class OpenAIClient:
             prompt={"id": prompt_id},
             input=user_input
         )
-        return response.output[0].content[0].text
+        return response.output_text
 
     def get_embedding(self, text: str, model, dimensions) -> list[float]:  # single embedding
         response = self.client.embeddings.create(
