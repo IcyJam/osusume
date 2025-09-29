@@ -8,7 +8,7 @@ The GitHub project was initially built from [this template](https://github.com/c
 
 - `backend/`: Contains the FastAPI application.
   - `main.py`: Entry point for the FastAPI application.
-  - `app/routes.py`: App setup and API routes.
+  - `app/api/routes.py`: App setup and API routes.
   - `Dockerfile`: Docker configuration for building the backend image.
   - `requirements.txt`: Python dependencies required by the backend.
 

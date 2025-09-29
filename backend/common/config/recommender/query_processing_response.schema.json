@@ -1,0 +1,80 @@
+{
+  "name": "query_processing",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "embedding_text": {
+        "type": "string",
+        "description": "Rich description of the user's intent and the ideal media they are seeking. Used for embeddings and semantic search."
+      },
+      "keywords": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Key themes, genres, or concepts extracted from the query. Will be matched against tags in the vector database."
+      },
+      "hard_constraints": {
+        "type": "object",
+        "properties": {
+          "score_range": {
+            "type": "object",
+            "properties": {
+              "min": { "type": ["number", "null"], "minimum": 0, "maximum": 10 },
+              "max": { "type": ["number", "null"], "minimum": 0, "maximum": 10 }
+            },
+            "required": ["min", "max"],
+            "additionalProperties": false,
+            "description": "Desired score range for the media (0–10). Null values mean unspecified."
+          },
+          "type": {
+            "type": "object",
+            "properties": {
+              "include": {
+                "type": "array",
+                "items": { "type": "string", "enum": ["TV","MOVIE","OVA","ONA","SPECIAL","MANGA","MANHWA","DOUJINSHI","NOVEL","ARTBOOK","OTHER"] }
+              },
+              "exclude": {
+                "type": "array",
+                "items": { "type": "string", "enum": ["TV","MOVIE","OVA","ONA","SPECIAL","MANGA","MANHWA","DOUJINSHI","NOVEL","ARTBOOK","OTHER"] }
+              }
+            },
+            "required": ["include", "exclude"],
+            "additionalProperties": false,
+            "description": "Included or excluded media types."
+          },
+          "date_range": {
+            "type": "object",
+            "properties": {
+              "start": { "type": ["string", "null"], "description": "Earliest date or season (YYYY-MM)." },
+              "end": { "type": ["string", "null"], "description": "Latest date or season (YYYY-MM)." }
+            },
+            "required": ["start", "end"],
+            "additionalProperties": false,
+            "description": "Desired release date or season range."
+          },
+          "status": {
+            "type": "object",
+            "properties": {
+              "include": {
+                "type": "array",
+                "items": { "type": "string", "enum": ["UPCOMING","ONGOING","FINISHED","SUSPENDED","CANCELLED","UNKNOWN"] }
+              },
+              "exclude": {
+                "type": "array",
+                "items": { "type": "string", "enum": ["UPCOMING","ONGOING","FINISHED","SUSPENDED","CANCELLED","UNKNOWN"] }
+              }
+            },
+            "required": ["include", "exclude"],
+            "additionalProperties": false,
+            "description": "Included or excluded production statuses."
+          }
+        },
+        "required": ["score_range", "type", "date_range", "status"],
+        "additionalProperties": false,
+        "description": "Strict filters for the database query."
+      }
+    },
+    "required": ["embedding_text", "keywords", "hard_constraints"],
+    "additionalProperties": false
+  }
+}
