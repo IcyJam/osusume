@@ -2,65 +2,97 @@
 
 Osusume is an LLM-based recommender app to help you find the anime or manga you're in the mood for!
 
-The GitHub project was initially built from [this template](https://github.com/chigwell/plain-fastapi-react-docker/tree/main).
+![osusume_demo.gif](assets/osusume_demo.gif)
+
+Instead of user- or tag-based recommendations, Osusume directly uses your prompt to find media that match what you
+wrote.
+
+## State of the project
+
+Osusume is currently a prototype! It was started as a learning project for LLM and RAG applications, as well as
+technologies like Docker, Qdrant, FastAPI and React. The documentation, application UI, and recommender logic can still
+be improved. However, all the pieces are already there, ready to be built upon in future iterations.
+
+## Project architecture
+
+The following diagram (made with [tldraw](tldraw.com)) illustrates the global architecture of the app. It is a little
+more advanced than we are, considering we have not hosted the project anywhere yet, and the regular database updates
+have yet to be implemented.
+![osusume_architecture.png](assets/osusume_architecture.png)
+
+## Recommender pipeline
+
+Under the hood, the recommender functions as follows:
+
+1. The user query is processed by an LLM to extract an enriched description, keywords, and hard constraints (type of
+   media, score and date ranges, release status)
+2. The processed query is embedded as a vector, and compared against existing media contained in the database
+3. The closests vectors are reranked and returned
+4. The corresponding IDs for the selected vectors are retrieved in the SQL media database
+5. The recommendations are returned by the API and displayed on the front end
 
 ## Project Structure
 
-- `backend/`: Contains the FastAPI application.
-  - `main.py`: Entry point for the FastAPI application.
-  - `app/api/routes.py`: App setup and API routes.
-  - `Dockerfile`: Docker configuration for building the backend image.
-  - `requirements.txt`: Python dependencies required by the backend.
-
-- `frontend/`: Contains the React application.
-  - `public/index.html`: HTML template for the React application.
-  - `src/`: React source files including `App.js` and `index.js`.
-  - `Dockerfile`: Docker configuration for building the frontend image.
-  - `package.json`: NPM dependencies and scripts for the frontend.
-
-- `.gitignore`: Specifies intentionally untracked files to ignore.
-- `docker-compose.yml`: Defines and runs multi-container Docker applications.
-- `LICENSE`: The license file.
-- `README.md`: Documentation about this project.
+```
+.
+├── backend/                  # Core backend logic
+│   ├── app/                  # Main application modules
+│   │   ├── api/              # REST API endpoints and models
+│   │   ├── clients/          # External service clients (LLMs)
+│   │   ├── db/               # Database models and access utilities
+│   │   ├── ingestion/        # Data ingestion and preprocessing
+│   │   ├── recommender/      # Recommender system algorithms
+│   │   ├── services/         # Internal services and business logic
+│   │   └── vector_db/        # Vector database integration
+│   │
+│   ├── cli/                  # Command-line interface tools
+│   │   ├── ingestion/        # CLI commands for data ingestion
+│   │   ├── vector_db/        # CLI commands for vector DB management
+│   │   └── main.py           # Entry point for CLI
+│   │
+│   ├── common/               # Shared utilities and configuration
+│   │   ├── config/           # Config files and defaults
+│   │   └── env.py            # Environment variable handling
+│   │
+│   ├── test/                 # Unit and integration tests
+│   └── main.py               # Backend entry point
+│
+├── frontend/                 # Frontend code
+│
+└── notebooks/                # Prototyping, analysis, and experimentation
+```
 
 ## Requirements
 
-To run this project, you will need Docker and Docker Compose installed on your machine. Installation guides for Docker can be found [here](https://docs.docker.com/get-docker/) and for Docker Compose [here](https://docs.docker.com/compose/install/).
+To run this project, you will need Docker and Docker Compose installed on your machine. Installation guides for Docker
+can be found [here](https://docs.docker.com/get-docker/) and for Docker
+Compose [here](https://docs.docker.com/compose/install/).
 
 ## Running the Application
 
-1. **Clone the Repository**
-   ```bash
-   git clone https://yourrepositoryurl/plain-fastapi-react-docker.git
-   cd plain-fastapi-react-docker
-   ```
+You can run the application using docker:
 
-2. **Build and Run the Docker Containers**
    ```bash
    docker-compose up --build
    ```
 
-   This command builds the images for the frontend and backend if they don't exist and starts the containers. The backend is available at `http://localhost:8000/` and the frontend at `http://localhost:3000/`.
+This command builds the images for the frontend and backend if they don't exist and starts the containers. The
+backend is available at `http://localhost:8000/` and the frontend at `http://localhost:3000/`.
 
-3. **Viewing the Application**
+Refer to [.env-template](backend/.env-template) for a list of the necessary environment variables. You will also have to
+use the [CLI](backend/cli) inside the container if you want to download the databases.
 
-   Open a browser and navigate to `http://localhost:3000/` to view the React application. It should display a message fetched from the FastAPI backend.
-
-## API Endpoints
-
-The backend server has the following API endpoint:
-- `GET /`: Returns a simple JSON.
-
-## Stopping the Application
-
-To stop the application and remove containers, networks, and volumes created by `docker-compose up`, you can use:
-```bash
-docker-compose down -v
-```
+Proper documentation is on our to-do list. In the meantime, feel free to get in touch if you want to run the project!
 
 ## Contributing
 
-Contributions to this project are welcome. Please fork the repository and submit a pull request.
+Contributions to this project are welcome. Please fork the repository and submit a pull request, or get in touch via the
+Discussions tab!
+
+## Credits
+
+The GitHub project was initially built
+from [this template](https://github.com/chigwell/plain-fastapi-react-docker/tree/main).
 
 ## License
 
